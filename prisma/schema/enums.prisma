@@ -1,0 +1,22 @@
+enum Role {
+  CITIZEN
+  STAFF
+  TECHNICIAN
+  MANAGER
+  ADMIN
+}
+
+
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  SUSPENDED
+  DELETED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
