@@ -7,6 +7,7 @@ import config from "./app/config";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
 import { AuthRoutes } from "./app/module/auth/auth.route";
+import httpStatus from "http-status";
 
 const app: Application = express();
 app.use(
@@ -20,8 +21,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use("/api/v1/auth", AuthRoutes);
+// basic route
 app.get("/", (req: Request, res: Response) => {
-	res.send("Welcome to the CivicFlow app!");
+	res.status(httpStatus.OK).json({
+		success: true,
+		message: "Welcome to the Civicflow Api",
+	
+	});
 });
 
 app.use(globalErrorHandler)
