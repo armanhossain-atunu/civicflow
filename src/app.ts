@@ -1,13 +1,12 @@
-/** biome-ignore-all lint/style/useImportType: <explanation> */
-/** biome-ignore-all lint/correctness/noUnusedFunctionParameters: <explanation> */
+
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { Application, Request, Response } from "express";
+import httpStatus from "http-status";
 import config from "./app/config";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
 import { AuthRoutes } from "./app/module/auth/auth.route";
-import httpStatus from "http-status";
 
 const app: Application = express();
 app.use(

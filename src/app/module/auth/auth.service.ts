@@ -3,7 +3,7 @@
 import {
   IGoogleLoginPayload,
   ILoginUserPayload,
-  IRegisterPatientPayload,
+  IRegisterCitizenPayload,
   IRequestUser,
 } from "./auth.interface";
 import bcrypt from "bcrypt";
@@ -19,8 +19,8 @@ import {
 import { TokenPayload } from "google-auth-library";
 import { googleClient } from "../../lib/googleAuth";
 
-const registerUser = async (payload: IRegisterPatientPayload) => {
-  const { name, password } = payload;
+const registerUser = async (payload: IRegisterCitizenPayload) => {
+  const { name, password, citizen: citizenData } = payload;
   const email = payload.email.trim().toLowerCase();
 
   const isUserExists = await prisma.user.findUnique({
@@ -42,7 +42,7 @@ const registerUser = async (payload: IRegisterPatientPayload) => {
       status: UserStatus.ACTIVE,
       emailVerified: false,
       citizen: {
-        create: { name, email },
+        create: { name, email, contactNumber: citizenData?.contactNumber || "" },
       },
     },
     omit: { password: true },
@@ -96,7 +96,9 @@ const loginUser = async (payload: ILoginUserPayload) => {
   if (user.isDeleted || user.status === UserStatus.DELETED) {
     throw new Error("User is deleted");
   }
-
+  if (user.password === null && user.googleId !== null) {
+    throw new Error("User registered with Google. Please login with Google.");
+  }
   const isPasswordMatched = await bcrypt.compare(
     password,
     user.password as string,
@@ -202,10 +204,8 @@ const refreshToken = async (token: string) => {
 
 // google loging
 const googleLogin = async (payload: IGoogleLoginPayload) => {
-  
   let googleIdTokenPayload: TokenPayload | null | undefined = null;
   try {
-    
     const ticket = await googleClient.verifyIdToken({
       idToken: payload.idToken,
       audience: config.google_client_id,
@@ -228,7 +228,7 @@ const googleLogin = async (payload: IGoogleLoginPayload) => {
     throw new Error("Google Email User Name Not Found");
   }
 
-  const ifPatientExistWithGoogleAuth = await prisma.user.findUnique({
+  const ifCitizenExistWithGoogleAuth = await prisma.user.findUnique({
     where: {
       email: googleIdTokenPayload.email,
       role: Role.CITIZEN,
@@ -236,10 +236,10 @@ const googleLogin = async (payload: IGoogleLoginPayload) => {
     },
   });
 
-  let user = ifPatientExistWithGoogleAuth;
+  let user = ifCitizenExistWithGoogleAuth;
 
-  if (!ifPatientExistWithGoogleAuth) {
-    const ifPatientExistWithCredentials = await prisma.user.findUnique({
+  if (!ifCitizenExistWithGoogleAuth) {
+    const ifCitizenExistWithCredentials = await prisma.user.findUnique({
       where: {
         email: googleIdTokenPayload.email,
         role: Role.CITIZEN,
@@ -247,25 +247,25 @@ const googleLogin = async (payload: IGoogleLoginPayload) => {
       },
     });
 
-    if (ifPatientExistWithCredentials) {
-      if (!ifPatientExistWithCredentials.emailVerified) {
+    if (ifCitizenExistWithCredentials) {
+      if (!ifCitizenExistWithCredentials.emailVerified) {
         throw new Error("Email Not Verified");
       }
 
-      if (ifPatientExistWithCredentials.status === UserStatus.BLOCKED) {
+      if (ifCitizenExistWithCredentials.status === UserStatus.BLOCKED) {
         throw new Error("User Is Blocked");
       }
 
       if (
-        ifPatientExistWithCredentials.isDeleted ||
-        ifPatientExistWithCredentials.status === UserStatus.DELETED
+        ifCitizenExistWithCredentials.isDeleted ||
+        ifCitizenExistWithCredentials.status === UserStatus.DELETED
       ) {
         throw new Error("User Is Deleted");
       }
 
       user = await prisma.user.update({
         where: {
-          id: ifPatientExistWithCredentials.id,
+          id: ifCitizenExistWithCredentials.id,
         },
 
         data: {
