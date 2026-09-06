@@ -27,4 +27,9 @@ export default {
 	technician_name: process.env.TECHNICIAN_NAME!,
 	technician_email: process.env.TECHNICIAN_EMAIL!,
 	technician_password: process.env.TECHNICIAN_PASSWORD!,
+	// Redis configuration
+	redis_user: process.env.REDIS_USER!,
+	redis_password: process.env.REDIS_PASSWORD!,
+	redis_host: process.env.REDIS_HOST!,
+	redis_port: process.env.REDIS_PORT!,
 };

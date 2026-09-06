@@ -1,5 +1,6 @@
 import app from "./app";
 import { prisma } from "./app/lib/prisma";
+import { redisClient } from "./app/lib/redis";
 import { seedAdmin, seedManager, seedTechnician } from "./app/utils/seed";
 
 
@@ -8,6 +9,8 @@ async function main() {
   try {
     await prisma.$connect();
     console.log("Connected to the database successfully.");
+	await redisClient.connect();
+	console.log("Connected to Redis successfully.");
     await seedAdmin();
     await seedManager();
     await seedTechnician();
