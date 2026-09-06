@@ -15,4 +15,16 @@ export default {
 	jwt_access_expires_in: process.env.JWT_ACCESS_EXPIRES_IN!,
 	jwt_refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN!,
 	google_client_id: process.env.GOOGLE_CLIENT_ID!,
+	// Admin
+	admin_name: process.env.ADMIN_NAME!,
+	admin_email: process.env.ADMIN_EMAIL!,
+	admin_password: process.env.ADMIN_PASSWORD!,
+	// Manager
+	manager_name: process.env.MANAGER_NAME!,
+	manager_email: process.env.MANAGER_EMAIL!,
+	manager_password: process.env.MANAGER_PASSWORD!,
+	// Technician
+	technician_name: process.env.TECHNICIAN_NAME!,
+	technician_email: process.env.TECHNICIAN_EMAIL!,
+	technician_password: process.env.TECHNICIAN_PASSWORD!,
 };
