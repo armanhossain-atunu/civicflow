@@ -143,6 +143,34 @@ const googleLogin = catchAsync(async (req: Request, res: Response) => {
     },
   });
 });
+const forgetPassword = catchAsync(async (req: Request, res: Response) => {
+  const payload = req.body;
+
+await AuthService.forgetPassword(payload);
+
+  
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `OTP Send successfully to ${payload.email}`,
+    data: null
+  });
+});
+const resetPassword = catchAsync(async (req: Request, res: Response) => {
+  const payload = req.body;
+
+  const result = await AuthService.resetPassword(payload);
+
+  
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "New tokens generated successfully",
+    data: {
+      
+    },
+  });
+});
 
 export const AuthController = {
   registerUser,
@@ -150,4 +178,6 @@ export const AuthController = {
   getMe,
   refreshToken,
   googleLogin,
+  forgetPassword,
+  resetPassword,
 };

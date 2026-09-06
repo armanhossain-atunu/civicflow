@@ -17,6 +17,16 @@ router.post(
   validateRequest(UserValidation.LoginZodSchema),
   AuthController.loginUser,
 );
+router.post(
+  "/forget-password",
+  validateRequest(UserValidation.forgetPasswordZodSchema),
+  AuthController.forgetPassword,
+);
+router.post(
+  "/reset-password",
+  validateRequest(UserValidation.resetPasswordZodSchema),
+  AuthController.resetPassword,
+);
 router.get(
   "/me",
   auth(Role.ADMIN, Role.MANAGER, Role.TECHNICIAN, Role.CITIZEN, Role.STAFF),

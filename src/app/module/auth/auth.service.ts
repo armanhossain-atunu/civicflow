@@ -1,10 +1,12 @@
 /** biome-ignore-all lint/style/useImportType: <explanation> */
 /** biome-ignore-all assist/source/organizeImports: <explanation> */
 import {
+  IForgetPasswordPayload,
   IGoogleLoginPayload,
   ILoginUserPayload,
   IRegisterCitizenPayload,
   IRequestUser,
+  IResetPasswordPayload,
 } from "./auth.interface";
 import bcrypt from "bcrypt";
 import config from "../../config";
@@ -18,6 +20,8 @@ import {
 } from "../../../generated/prisma/enums";
 import { TokenPayload } from "google-auth-library";
 import { googleClient } from "../../lib/googleAuth";
+import crypto from "crypto";
+import { redisClient } from "../../lib/redis";
 
 const registerUser = async (payload: IRegisterCitizenPayload) => {
   const { name, password, citizen: citizenData } = payload;
@@ -330,10 +334,46 @@ const googleLogin = async (payload: IGoogleLoginPayload) => {
   };
 };
 
+const forgetPassword = async(payload : IForgetPasswordPayload )=>{
+  const { email } = payload;
+  const isUserExists = await prisma.user.findUnique({
+    where : {
+      email
+    }
+  })
+  if(!isUserExists){
+    throw new Error("User Not Found");
+  }
+  if(isUserExists.status === UserStatus.BLOCKED){
+    throw new Error("User Is Blocked");
+  }
+  if(isUserExists.isDeleted || isUserExists.status === UserStatus.DELETED){
+    throw new Error("User Is Deleted");
+  }
+  if(isUserExists.googleId && isUserExists.authProvider === AuthProvider.GOOGLE){
+    throw new Error("User registered with Google. Please login with Google.");
+  }
+
+  const otp = crypto.randomInt(100000, 999999).toString();
+  const key = `ForgetPassword-OTP:${isUserExists.email}`;
+
+  await redisClient.set(key, otp,{
+    expiration:{
+      type : "EX",
+      value : 5 * 60
+    }
+  });
+ 
+}
+const resetPassword = async(payload : IResetPasswordPayload)=>{
+
+}
 export const AuthService = {
   registerUser,
   loginUser,
   getMe,
   refreshToken,
   googleLogin,
+  forgetPassword,
+  resetPassword,
 };
