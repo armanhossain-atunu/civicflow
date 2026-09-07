@@ -22,6 +22,7 @@ import { TokenPayload } from "google-auth-library";
 import { googleClient } from "../../lib/googleAuth";
 import crypto from "crypto";
 import { redisClient } from "../../lib/redis";
+import { transporter } from "../../lib/Nodemailer";
 
 const registerUser = async (payload: IRegisterCitizenPayload) => {
   const { name, password, citizen: citizenData } = payload;
@@ -46,7 +47,11 @@ const registerUser = async (payload: IRegisterCitizenPayload) => {
       status: UserStatus.ACTIVE,
       emailVerified: false,
       citizen: {
-        create: { name, email, contactNumber: citizenData?.contactNumber || "" },
+        create: {
+          name,
+          email,
+          contactNumber: citizenData?.contactNumber || "",
+        },
       },
     },
     omit: { password: true },
@@ -334,40 +339,104 @@ const googleLogin = async (payload: IGoogleLoginPayload) => {
   };
 };
 
-const forgetPassword = async(payload : IForgetPasswordPayload )=>{
+const forgetPassword = async (payload: IForgetPasswordPayload) => {
   const { email } = payload;
   const isUserExists = await prisma.user.findUnique({
-    where : {
-      email
-    }
-  })
-  if(!isUserExists){
+    where: {
+      email,
+    },
+  });
+  if (!isUserExists) {
     throw new Error("User Not Found");
   }
-  if(isUserExists.status === UserStatus.BLOCKED){
+  if (!isUserExists.emailVerified) {
+    throw new Error("Email Not Verified");
+  }
+  if (isUserExists.status === UserStatus.BLOCKED) {
     throw new Error("User Is Blocked");
   }
-  if(isUserExists.isDeleted || isUserExists.status === UserStatus.DELETED){
+  if (isUserExists.isDeleted || isUserExists.status === UserStatus.DELETED) {
     throw new Error("User Is Deleted");
   }
-  if(isUserExists.googleId && isUserExists.authProvider === AuthProvider.GOOGLE){
+  if (
+    isUserExists.googleId &&
+    isUserExists.authProvider === AuthProvider.GOOGLE
+  ) {
     throw new Error("User registered with Google. Please login with Google.");
   }
 
   const otp = crypto.randomInt(100000, 999999).toString();
   const key = `ForgetPassword-OTP:${isUserExists.email}`;
 
-  await redisClient.set(key, otp,{
-    expiration:{
-      type : "EX",
-      value : 5 * 60
-    }
+  await redisClient.set(key, otp, {
+    expiration: {
+      type: "EX",
+      value: 5 * 60,
+    },
   });
- 
-}
-const resetPassword = async(payload : IResetPasswordPayload)=>{
+  await transporter.sendMail({
+    from: config.email_sender,
+    to: isUserExists.email,
+    subject: "Forget Password OTP",
+    text: `Your OTP is ${otp}`,
+  });
+};
+const resetPassword = async (payload: IResetPasswordPayload) => {
+  const { email, otp, newPassword } = payload;
+  const isUserExists = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+  if (!isUserExists) {
+    throw new Error("User Not Found");
+  }
+  if (!isUserExists.emailVerified) {
+    throw new Error("Email Not Verified");
+  }
+  if (isUserExists.status === UserStatus.BLOCKED) {
+    throw new Error("User Is Blocked");
+  }
+  if (isUserExists.isDeleted || isUserExists.status === UserStatus.DELETED) {
+    throw new Error("User Is Deleted");
+  }
+  if (
+    isUserExists.googleId &&
+    isUserExists.authProvider === AuthProvider.GOOGLE
+  ) {
+    throw new Error("User registered with Google. Please login with Google.");
+  }
+  const key = `ForgetPassword-OTP:${isUserExists.email}`;
+  const redisOtp = await redisClient.get(key);
 
-}
+  if (!redisOtp) {
+    throw new Error("OTP Expired");
+  }
+  if (redisOtp !== otp) {
+    throw new Error("Invalid OTP");
+  }
+  const hashedNewPassword = await bcrypt.hash(
+    newPassword,
+    Number(config.bcrypt_salt_rounds),
+  );
+  await prisma.user.update({
+    where: {
+      email,
+    },
+    data: {
+      password: hashedNewPassword,
+    },
+  });
+
+  await redisClient.del([key]);
+ await transporter.sendMail({
+    from: config.email_sender,
+    to: isUserExists.email,
+    subject: "Password Reset Success",
+    text: "Your Password Reset Successfully Completed",
+  });
+
+};
 export const AuthService = {
   registerUser,
   loginUser,
