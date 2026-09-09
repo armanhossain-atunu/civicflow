@@ -7,6 +7,7 @@ import {
   IRegisterCitizenPayload,
   IRequestUser,
   IResetPasswordPayload,
+  IVerifyEmailPayload,
 } from "./auth.interface";
 import bcrypt from "bcrypt";
 import config from "../../config";
@@ -25,9 +26,11 @@ import { redisClient } from "../../lib/redis";
 import { transporter } from "../../lib/Nodemailer";
 import path from "path";
 import ejs from "ejs";
+import { number } from "zod";
 
 const registerUser = async (payload: IRegisterCitizenPayload) => {
   const { name, password, citizen: citizenData } = payload;
+
   const email = payload.email.trim().toLowerCase();
 
   const isUserExists = await prisma.user.findUnique({
@@ -40,24 +43,145 @@ const registerUser = async (payload: IRegisterCitizenPayload) => {
 
   const hashedPassword = await bcrypt.hash(password, 8);
 
+  const expirationSeconds = 5 * 60;
+
+  const otpKey = `citizen-registration-otp:${email}`;
+  const otpValue = crypto.randomInt(100000, 1000000).toString();
+
+  await redisClient.set(otpKey, otpValue, {
+    expiration: {
+      type: "EX",
+      value: expirationSeconds,
+    },
+  });
+
+  const citizenRegistrationKey = `citizen-registration-data:${email}`;
+  const redisUserDataPayload = {
+    name,
+    email,
+    password: hashedPassword,
+    citizen: citizenData,
+  };
+
+  await redisClient.set(
+    citizenRegistrationKey,
+    JSON.stringify(redisUserDataPayload),
+    {
+      expiration: {
+        type: "EX",
+        value: expirationSeconds,
+      },
+    },
+  );
+
+  const tempatePath = path.join(
+    process.cwd(),
+    "src/app/templates/registration-user-otp.ejs",
+  );
+
+  const templateData = {
+    name,
+    email,
+    otp: otpValue,
+    expirationMinutes: expirationSeconds / 60,
+  };
+
+  const html = await ejs.renderFile(tempatePath, templateData);
+
+  await transporter.sendMail({
+    from: config.email_sender,
+    to: email,
+    subject: "Email Verification",
+    // text : `Your OTP is ${otp}`
+    // html: `<h1>Your OTP is ${otp}</h1>`
+    html,
+  });
+};
+
+const verifycitizenEmail = async (payload: IVerifyEmailPayload) => {
+  const otp = payload.otp;
+  const email = payload.email.trim().toLowerCase();
+
+  const isUserExist = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (isUserExist?.status === "BLOCKED") {
+    throw new Error("User is Blocked");
+  }
+
+  if (isUserExist?.emailVerified) {
+    throw new Error("Email ALready Verified");
+  }
+
+  if (isUserExist?.isDeleted || isUserExist?.status === "DELETED") {
+    throw new Error("User is Deleted");
+  }
+
+  const otpKey = `citizen-registration-otp:${email}`;
+
+  const redisOtp = await redisClient.get(otpKey);
+
+  // if (!redisOtp) {
+  //   throw new Error("Invalid OTP");
+  // }
+
+  if (redisOtp !== otp) {
+    throw new Error("OTP Does Not Match");
+  }
+
+  await redisClient.del(otpKey);
+
+  const citizenRegistrationKey = `citizen-registration-data:${email}`;
+
+  const rediscitizenData = await redisClient.get(citizenRegistrationKey);
+
+  if (!rediscitizenData) {
+    throw new Error("citizen Doesnt Exist");
+  }
+
+  const citizenPayload: IRegisterCitizenPayload = JSON.parse(rediscitizenData);
+
   const createdUser = await prisma.user.create({
     data: {
-      name,
-      email,
-      password: hashedPassword,
+      name: citizenPayload.name,
+      email: citizenPayload.email,
+      password: citizenPayload.password,
       role: Role.CITIZEN,
       status: UserStatus.ACTIVE,
-      emailVerified: false,
+      emailVerified: true,
       citizen: {
         create: {
-          name,
-          email,
-          contactNumber: citizenData?.contactNumber || "",
+          name: citizenPayload.name,
+          email: citizenPayload.email,
+          contactNumber: citizenPayload?.citizen?.contactNumber || "",
         },
       },
     },
     omit: { password: true },
     include: { citizen: true },
+  });
+
+  await redisClient.del(citizenRegistrationKey);
+
+  const tempatePath = path.join(
+    process.cwd(),
+    "src/app/templates/citizen-welcome-email.ejs",
+  );
+
+  const templateData = {
+    name: createdUser.name,
+  };
+
+  const html = await ejs.renderFile(tempatePath, templateData);
+
+  await transporter.sendMail({
+    from: config.email_sender,
+    to: email,
+    subject: "Welcome To PH Healthcare System",
+    // text : `Your OTP is ${otp}`
+    // html: `<h1>Your OTP is ${otp}</h1>`
+    html,
   });
 
   const { citizen, ...user } = createdUser;
@@ -363,10 +487,7 @@ const forgetPassword = async (payload: IForgetPasswordPayload) => {
     throw new Error("User Is Blocked");
   }
 
-  if (
-    isUserExists.isDeleted ||
-    isUserExists.status === UserStatus.DELETED
-  ) {
+  if (isUserExists.isDeleted || isUserExists.status === UserStatus.DELETED) {
     throw new Error("User Is Deleted");
   }
 
@@ -374,9 +495,7 @@ const forgetPassword = async (payload: IForgetPasswordPayload) => {
     isUserExists.googleId &&
     isUserExists.authProvider === AuthProvider.GOOGLE
   ) {
-    throw new Error(
-      "User registered with Google. Please login with Google.",
-    );
+    throw new Error("User registered with Google. Please login with Google.");
   }
 
   const otp = crypto.randomInt(100000, 999999).toString();
@@ -437,13 +556,8 @@ const resetPassword = async (payload: IResetPasswordPayload) => {
     throw new Error("User Is Deleted");
   }
 
-  if (
-    user.googleId &&
-    user.authProvider === AuthProvider.GOOGLE
-  ) {
-    throw new Error(
-      "User registered with Google. Please login with Google.",
-    );
+  if (user.googleId && user.authProvider === AuthProvider.GOOGLE) {
+    throw new Error("User registered with Google. Please login with Google.");
   }
 
   // Redis OTP key
@@ -490,10 +604,7 @@ const resetPassword = async (payload: IResetPasswordPayload) => {
     name: user.name,
   };
 
-  const html = await ejs.renderFile(
-    templatePath,
-    templateData,
-  );
+  const html = await ejs.renderFile(templatePath, templateData);
 
   // Send success email
   await transporter.sendMail({
@@ -505,6 +616,7 @@ const resetPassword = async (payload: IResetPasswordPayload) => {
 };
 export const AuthService = {
   registerUser,
+  verifycitizenEmail,
   loginUser,
   getMe,
   refreshToken,

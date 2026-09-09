@@ -20,6 +20,12 @@ const citizenRegistrationZodSchema = z.object({
     })
     .optional(),
 });
+ const citizenEmailVerifyZodSchema = z.object({
+    
+    email: z.email("Not email!!"),
+     otp: z.string().length(6)
+   
+})
 
 const LoginZodSchema = z.object({
   email: z.email(),
@@ -52,6 +58,7 @@ const resetPasswordZodSchema = z.object({
 
 export const UserValidation = {
   citizenRegistrationZodSchema,
+  citizenEmailVerifyZodSchema,
   LoginZodSchema,
   forgetPasswordZodSchema,
   resetPasswordZodSchema
