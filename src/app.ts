@@ -12,10 +12,10 @@ import { UserRoutes } from "./app/module/user/user.route";
 
 const app: Application = express();
 app.use(
-  cors({
-    origin: config.frontend_url,
-    credentials: true,
-  }),
+	cors({
+		origin: config.frontend_url,
+		credentials: true,
+	}),
 );
 
 app.use(express.json());
@@ -40,10 +40,10 @@ app.use("/api/v1/user", UserRoutes);
 // });
 // basic route
 app.get("/", (req: Request, res: Response) => {
-  res.status(httpStatus.OK).json({
-    success: true,
-    message: "Welcome to the Civicflow Api",
-  });
+	res.status(httpStatus.OK).json({
+		success: true,
+		message: "Welcome to the Civicflow Api",
+	});
 });
 
 app.use(globalErrorHandler);

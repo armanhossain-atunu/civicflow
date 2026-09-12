@@ -10,7 +10,7 @@ model User {
   status             UserStatus @default(ACTIVE)
   needPasswordChange Boolean    @default(false)
   isDeleted          Boolean    @default(false)
- imageUrl           String     @default("")
+  imageUrl           String     @default("")
   imagePublicId      String     @default("")
   deletedAt          DateTime?
   createdAt          DateTime   @default(now())

@@ -8,32 +8,34 @@ import { validateRequest } from "../../middleware/validateRequest";
 const router = Router();
 
 router.post(
-  "/register",
-  validateRequest(UserValidation.citizenRegistrationZodSchema),
-  AuthController.registerUser,
+	"/register",
+	validateRequest(UserValidation.citizenRegistrationZodSchema),
+	AuthController.registerUser,
 );
-router.post("/verify-email",
+router.post(
+	"/verify-email",
 	validateRequest(UserValidation.citizenEmailVerifyZodSchema),
-	 AuthController.verifyPatientEmail);
-router.post(
-  "/login",
-  validateRequest(UserValidation.LoginZodSchema),
-  AuthController.loginUser,
+	AuthController.verifyPatientEmail,
 );
 router.post(
-  "/forget-password",
-  validateRequest(UserValidation.forgetPasswordZodSchema),
-  AuthController.forgetPassword,
+	"/login",
+	validateRequest(UserValidation.LoginZodSchema),
+	AuthController.loginUser,
 );
 router.post(
-  "/reset-password",
-  validateRequest(UserValidation.resetPasswordZodSchema),
-  AuthController.resetPassword,
+	"/forget-password",
+	validateRequest(UserValidation.forgetPasswordZodSchema),
+	AuthController.forgetPassword,
+);
+router.post(
+	"/reset-password",
+	validateRequest(UserValidation.resetPasswordZodSchema),
+	AuthController.resetPassword,
 );
 router.get(
-  "/me",
-  auth(Role.ADMIN, Role.MANAGER, Role.TECHNICIAN, Role.CITIZEN, Role.STAFF),
-  AuthController.getMe,
+	"/me",
+	auth(Role.ADMIN, Role.MANAGER, Role.TECHNICIAN, Role.CITIZEN, Role.STAFF),
+	AuthController.getMe,
 );
 router.post("/refresh-token", AuthController.refreshToken);
 router.post("/google", AuthController.googleLogin);
