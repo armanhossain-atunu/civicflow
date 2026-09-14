@@ -1,0 +1,33 @@
+model ComplaintStatusHistory {
+  id          String          @id @default(uuid())
+
+  complaintId String
+  changedById String?
+
+  oldStatus   ComplaintStatus?
+  newStatus   ComplaintStatus
+
+  note        String?
+
+  createdAt   DateTime @default(now())
+complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+changedBy   User? @relation(fields: [changedById], references: [id], onDelete: SetNull, onUpdate: Cascade)                               
+//   complaint   Complaint @relation(
+//     fields: [complaintId],
+//     references: [id],
+//     onDelete: Cascade,
+//     onUpdate: Cascade
+//   )
+
+//   changedBy   User? @relation(
+//     fields: [changedById],
+//     references: [id],
+//     onDelete: SetNull,
+//     onUpdate: Cascade
+//   )
+
+  @@index([complaintId])
+  @@index([changedById])
+
+  @@map("complaint_status_histories")
+}

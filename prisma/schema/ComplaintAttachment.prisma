@@ -1,0 +1,17 @@
+model ComplaintAttachment {
+  id          String   @id @default(uuid())
+
+  complaintId String
+
+  fileUrl     String
+  fileName    String?
+  fileType    String?
+  fileSize    Int?
+
+  createdAt   DateTime @default(now())
+
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([complaintId])
+  @@map("complaint_attachments")
+}
