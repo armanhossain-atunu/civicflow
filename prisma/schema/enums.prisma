@@ -23,15 +23,15 @@ enum Gender {
   OTHER
 }
 enum ComplaintStatus {
+  PENDING_PAYMENT
   SUBMITTED
   UNDER_REVIEW
   ASSIGNED
   IN_PROGRESS
-  ON_HOLD
   RESOLVED
   CLOSED
   REJECTED
-  REOPENED
+  CANCELLED
 }
 
 enum ComplaintPriority {
@@ -39,4 +39,11 @@ enum ComplaintPriority {
   MEDIUM
   HIGH
   URGENT
+}
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
 }

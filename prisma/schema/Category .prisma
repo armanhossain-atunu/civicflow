@@ -11,4 +11,6 @@ model Category {
   complaints  Complaint[]
 
   @@index([isActive])
+
+  @@map("categories")
 }

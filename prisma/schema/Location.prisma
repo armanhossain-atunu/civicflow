@@ -16,4 +16,6 @@ model Location {
 
   @@index([city])
   @@index([area])
+
+  @@map("locations")
 }
