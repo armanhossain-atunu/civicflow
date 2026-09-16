@@ -4,6 +4,8 @@ model Category {
   name        String   @unique
   description String?
   isActive    Boolean  @default(true)
+  status     categoryStatus @default(FREE)
+   price       Decimal?       @db.Decimal(10, 2)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -11,6 +13,6 @@ model Category {
   complaints  Complaint[]
 
   @@index([isActive])
-
-  @@map("categories")
+  @@index([status])
+  @@map("Category")
 }

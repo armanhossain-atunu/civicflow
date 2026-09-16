@@ -10,6 +10,7 @@ enum AuthProvider {
   GOOGLE
   CREDENTIAL
 }
+
 enum UserStatus {
   ACTIVE
   BLOCKED
@@ -22,6 +23,7 @@ enum Gender {
   FEMALE
   OTHER
 }
+
 enum ComplaintStatus {
   PENDING_PAYMENT
   SUBMITTED
@@ -40,6 +42,12 @@ enum ComplaintPriority {
   HIGH
   URGENT
 }
+
+enum categoryStatus {
+  PAID
+  FREE
+}
+
 enum PaymentStatus {
   PENDING
   PAID
