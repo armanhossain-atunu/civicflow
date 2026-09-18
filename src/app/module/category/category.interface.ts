@@ -1,16 +1,17 @@
-import { categoryStatus } from "../../../generated/prisma/enums";
-
 export interface ICreateCategory {
   name: string;
-  status: categoryStatus,
-  price?: number;
   description?: string;
+  department: string;
+  isActive?: boolean;
+  paymentRequired?: boolean;
+  paymentAmount?: number;
 }
 
 export interface IUpdateCategory {
   name?: string;
-  status?: categoryStatus,
-  price?: number;
   description?: string;
+  department?: string;
   isActive?: boolean;
+  paymentRequired?: boolean;
+  paymentAmount?: number;
 }

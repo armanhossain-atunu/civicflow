@@ -1,6 +1,8 @@
 import type { Request, Response } from "express";
+
 import { CategoryService } from "./category.service";
 
+// Create category
 const createCategory = async (req: Request, res: Response) => {
   const result = await CategoryService.createCategory(req.body);
 
@@ -11,6 +13,7 @@ const createCategory = async (req: Request, res: Response) => {
   });
 };
 
+// Get all categories
 const getAllCategories = async (req: Request, res: Response) => {
   const result = await CategoryService.getAllCategories();
 
@@ -21,6 +24,7 @@ const getAllCategories = async (req: Request, res: Response) => {
   });
 };
 
+// Get active categories
 const getActiveCategories = async (req: Request, res: Response) => {
   const result = await CategoryService.getActiveCategories();
 
@@ -31,6 +35,7 @@ const getActiveCategories = async (req: Request, res: Response) => {
   });
 };
 
+// Get category by ID
 const getCategoryById = async (req: Request, res: Response) => {
   const result = await CategoryService.getCategoryById(req.params.id as string);
 
@@ -41,6 +46,7 @@ const getCategoryById = async (req: Request, res: Response) => {
   });
 };
 
+// Update category
 const updateCategory = async (req: Request, res: Response) => {
   const result = await CategoryService.updateCategory(
     req.params.id as string,
@@ -54,8 +60,11 @@ const updateCategory = async (req: Request, res: Response) => {
   });
 };
 
+// Deactivate category
 const deleteCategory = async (req: Request, res: Response) => {
-  const result = await CategoryService.deleteCategory(req.params.id as string);
+  const result = await CategoryService.deleteCategory(
+    req.params.id as string,
+  );
 
   res.status(200).json({
     success: true,

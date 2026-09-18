@@ -178,9 +178,7 @@ const verifycitizenEmail = async (payload: IVerifyEmailPayload) => {
 	await transporter.sendMail({
 		from: config.email_sender,
 		to: email,
-		subject: "Welcome To PH Healthcare System",
-		// text : `Your OTP is ${otp}`
-		// html: `<h1>Your OTP is ${otp}</h1>`
+		subject: "Welcome To CivicFlow System",
 		html,
 	});
 

@@ -2,14 +2,22 @@ import { Router } from "express";
 import { complaintController } from "./complaint.controller";
 import { auth } from "../../middleware/checkAuth";
 import { Role } from "../../../generated/prisma/enums";
-
+import { validateRequest } from "../../middleware/validateRequest";
+import { createComplaintSchema } from "./complaint.validation";
 
 const router = Router();
 
 router.post(
   "/",
   auth(Role.CITIZEN),
+  validateRequest(createComplaintSchema),
   complaintController.createComplaint,
+);
+router.get("/", auth(Role.CITIZEN), complaintController.getOwnComplaints);
+router.delete(
+  "/:id",
+  auth(Role.CITIZEN),
+  complaintController.deleteOwnComplaint,
 );
 
 export const complaintRouter = router;

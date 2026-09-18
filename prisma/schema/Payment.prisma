@@ -1,13 +1,35 @@
 model Payment {
-    id          String  @id @default(uuid())
-    complaintId String
-    amount      Decimal @db.Decimal(10, 2)
+  id                   String         @id @default(uuid())
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  complaintId          String         @unique
+  citizenId            String
 
-    complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  amount               Decimal        @db.Decimal(10, 2)
 
-    @@index([complaintId])
-    @@map("payments")
+  status               PaymentStatus  @default(PENDING)
+  method               PaymentMethod
+  purpose              PaymentPurpose @default(COMPLAINT_SUBMISSION)
+
+  transactionId        String?        @unique
+  gatewayTransactionId String?        @unique
+
+  gateway              String?
+
+  initiatedAt          DateTime       @default(now())
+  paidAt               DateTime?
+  failedAt             DateTime?
+
+  failureReason        String?
+
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  // relations
+    complaint            Complaint     @relation(fields: [complaintId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+ citizen              User           @relation(fields: [citizenId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  @@index([citizenId])
+  @@index([status])
+  @@index([createdAt])
+
+  @@map("payments")
 }

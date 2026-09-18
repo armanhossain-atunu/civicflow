@@ -1,58 +1,76 @@
 import { z } from "zod";
 
- const createCategorySchema = z
+const createCategorySchema = z
   .object({
     name: z
       .string()
+      .trim()
       .min(2, "Category name must be at least 2 characters"),
 
-    description: z.string().optional(),
+    description: z.string().trim().optional(),
 
-    status: z.enum(["FREE", "PAID"]).default("FREE"),
+    department: z
+      .string()
+      .trim()
+      .min(2, "Department name must be at least 2 characters"),
 
-    price: z.number().nonnegative().optional(),
+    isActive: z.boolean().default(true),
+
+    paymentRequired: z.boolean().default(false),
+
+    paymentAmount: z.number().nonnegative().optional(),
   })
   .refine(
     (data) => {
-      if (data.status === "PAID") {
-        return data.price !== undefined && data.price > 0;
+      if (data.paymentRequired) {
+        return data.paymentAmount !== undefined && data.paymentAmount > 0;
       }
 
-      return data.price === undefined || data.price === 0;
+      return data.paymentAmount === undefined || data.paymentAmount === 0;
     },
     {
-      message: "PAID category must have a price greater than 0",
-      path: ["price"],
+      message: "Paid category must have a payment amount greater than 0",
+      path: ["paymentAmount"],
     },
   );
 
 const updateCategorySchema = z
   .object({
-    name: z.string().min(2).optional(),
+    name: z
+      .string()
+      .trim()
+      .min(2, "Category name must be at least 2 characters")
+      .optional(),
 
-    description: z.string().optional(),
+    description: z.string().trim().optional(),
 
-    status: z.enum(["FREE", "PAID"]).optional(),
-
-    price: z.number().nonnegative().optional(),
+    department: z
+      .string()
+      .trim()
+      .min(2, "Department name must be at least 2 characters")
+      .optional(),
 
     isActive: z.boolean().optional(),
+
+    paymentRequired: z.boolean().optional(),
+
+    paymentAmount: z.number().nonnegative().optional(),
   })
   .refine(
     (data) => {
-      if (data.status === "PAID") {
-        return data.price !== undefined && data.price > 0;
+      if (data.paymentRequired === true) {
+        return data.paymentAmount !== undefined && data.paymentAmount > 0;
       }
 
-      if (data.status === "FREE") {
-        return data.price === undefined || data.price === 0;
+      if (data.paymentRequired === false) {
+        return data.paymentAmount === undefined || data.paymentAmount === 0;
       }
 
       return true;
     },
     {
-      message: "PAID category must have a price greater than 0",
-      path: ["price"],
+      message: "Paid category must have a payment amount greater than 0",
+      path: ["paymentAmount"],
     },
   );
 
@@ -60,3 +78,4 @@ export const CategoryValidation = {
   createCategorySchema,
   updateCategorySchema,
 };
+
