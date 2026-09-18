@@ -39,9 +39,20 @@ const deleteOwnComplaint = catchAsync(async (req: Request, res: Response) => {
     data: null,
   });
 });
+const getAllComplaints = catchAsync(async (req: Request, res: Response) => {
+  const result = await complaintService.getAllComplaints();
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "All complaints fetched successfully",
+    data: result,
+  });
+});
 
 export const complaintController = {
   createComplaint,
   getOwnComplaints,
+  getAllComplaints,
   deleteOwnComplaint,
 };

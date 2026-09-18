@@ -13,6 +13,11 @@ router.post(
   validateRequest(createComplaintSchema),
   complaintController.createComplaint,
 );
+router.get(
+  "/",
+  auth(Role.ADMIN, Role.MANAGER, Role.TECHNICIAN),
+  complaintController.getAllComplaints,
+);
 router.get("/", auth(Role.CITIZEN), complaintController.getOwnComplaints);
 router.delete(
   "/:id",

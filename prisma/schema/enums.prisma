@@ -54,6 +54,7 @@ enum PaymentStatus {
   CANCELLED
   REFUNDED
 }
+
 enum PaymentMethod {
   SSL_COMMERZ
   BKASH
@@ -61,6 +62,7 @@ enum PaymentMethod {
   STRIPE
   CARD
 }
+
 enum PaymentPurpose {
   COMPLAINT_SUBMISSION
 }

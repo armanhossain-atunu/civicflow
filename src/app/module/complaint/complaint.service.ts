@@ -121,9 +121,53 @@ const deleteOwnComplaint = async (userId: string, complaintId: string) => {
     },
   });
 };
+const getAllComplaints = async () => {
+  return prisma.complaint.findMany({
+   
+    include: {
+      category: true,
 
+      citizen: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+
+      assignments: {
+        include: {
+          assignedTo: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+
+          assignedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+      },
+
+      payment: true,
+    },
+
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
 export const complaintService = {
   createComplaint,
   getOwnComplaints,
+  getAllComplaints,
   deleteOwnComplaint,
 };

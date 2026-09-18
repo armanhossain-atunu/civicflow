@@ -1,35 +1,35 @@
 model Payment {
-  id                   String         @id @default(uuid())
+  id String @id @default(uuid())
 
-  complaintId          String         @unique
-  citizenId            String
+  complaintId String @unique
+  citizenId   String
 
-  amount               Decimal        @db.Decimal(10, 2)
+  amount Decimal @db.Decimal(10, 2)
 
-  status               PaymentStatus  @default(PENDING)
-  method               PaymentMethod
-  purpose              PaymentPurpose @default(COMPLAINT_SUBMISSION)
+  status  PaymentStatus  @default(PENDING)
+  method  PaymentMethod
+  purpose PaymentPurpose @default(COMPLAINT_SUBMISSION)
 
-  transactionId        String?        @unique
-  gatewayTransactionId String?        @unique
+  transactionId        String? @unique
+  gatewayTransactionId String? @unique
 
-  gateway              String?
+  gateway String?
 
-  initiatedAt          DateTime       @default(now())
-  paidAt               DateTime?
-  failedAt             DateTime?
+  initiatedAt DateTime  @default(now())
+  paidAt      DateTime?
+  failedAt    DateTime?
 
-  failureReason        String?
+  failureReason String?
 
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // relations
-    complaint            Complaint     @relation(fields: [complaintId], references: [id], onDelete: Restrict, onUpdate: Cascade)
- citizen              User           @relation(fields: [citizenId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  citizen   User      @relation(fields: [citizenId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
   @@index([citizenId])
   @@index([status])
   @@index([createdAt])
-
   @@map("payments")
 }

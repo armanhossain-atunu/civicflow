@@ -1,16 +1,23 @@
 model ComplaintAssignment {
-    id String @id @default(uuid())
+  id           String    @id @default(uuid())
+  complaintId  String
+  assignedToId String
+  assignedById String
+  note         String?
+  assignedAt   DateTime  @default(now())
+  completedAt  DateTime?
 
-    complaintId String
-    assigneeId  String
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-    assignedAt DateTime @default(now())
-    updatedAt  DateTime @updatedAt
+  assignedTo User @relation("ComplaintAssignedTo", fields: [assignedToId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-    complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-    assignee    User      @relation(fields: [assigneeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  assignedBy User @relation("ComplaintAssignedBy", fields: [assignedById], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-    @@index([complaintId])
-    @@index([assigneeId])
-    @@map("complaint_assignments")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([complaintId])
+  @@index([assignedToId])
+  @@index([assignedById])
+  @@map("complaint_assignments")
 }

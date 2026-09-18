@@ -2,7 +2,7 @@ model Category {
   id          String  @id @default(uuid())
   name        String  @unique
   description String?
-  department  String 
+  department  String
   isActive    Boolean @default(true)
 
   paymentRequired Boolean  @default(false)
