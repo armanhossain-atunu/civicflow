@@ -2,7 +2,80 @@ import { prisma } from "../../lib/prisma";
 import type { ICreateComplaint } from "./complaint.interface";
 
 // Create complaint
-const createComplaint = async (userId: string, payload: ICreateComplaint) => {
+// const createComplaint = async (userId: string, payload: ICreateComplaint) => {
+//   // Check category
+//   const category = await prisma.category.findUnique({
+//     where: {
+//       id: payload.categoryId,
+//     },
+//   });
+
+//   if (!category) {
+//     throw new Error("Category not found");
+//   }
+
+//   // Category must be active
+//   if (!category.isActive) {
+//     throw new Error("This category is not active");
+//   }
+
+//   // Category department and complaint department must match
+//   if (category.department !== payload.department) {
+//     throw new Error("Selected department does not match the selected category");
+//   }
+
+//   // Check duplicate active complaint
+//   const existingComplaint = await prisma.complaint.findFirst({
+//     where: {
+//       citizenId: userId,
+//       categoryId: payload.categoryId,
+//       categoryName: category.name,
+//       department: category.department,
+//       location: payload.location,
+
+//       // CLOSED complaint is allowed
+//       status: {
+//         not: "CLOSED",
+//       },
+
+      
+//     },
+//   });
+
+//   if (existingComplaint) {
+//     throw new Error(
+//       "You already have an active complaint for this category, department and location",
+//     );
+//   }
+
+//   const trackingId = `CF-${Date.now()}`;
+
+//   const complaint = await prisma.complaint.create({
+//     data: {
+//       trackingId,
+//       title: payload.title,
+//       description: payload.description,
+
+//       citizenId: userId,
+//       categoryId: payload.categoryId,
+
+//       // Snapshot from Category
+//       categoryName: category.name,
+//       department: category.department,
+//       location: payload.location,
+
+//       // Prisma defaults
+//       // status: SUBMITTED
+//       // paymentStatus: NOT_REQUIRED
+//     },
+//   });
+
+//   return complaint;
+// };
+const createComplaint = async (
+  userId: string,
+  payload: ICreateComplaint,
+) => {
   // Check category
   const category = await prisma.category.findUnique({
     where: {
@@ -21,7 +94,19 @@ const createComplaint = async (userId: string, payload: ICreateComplaint) => {
 
   // Category department and complaint department must match
   if (category.department !== payload.department) {
-    throw new Error("Selected department does not match the selected category");
+    throw new Error(
+      "Selected department does not match the selected category",
+    );
+  }
+
+  // Paid category must have payment amount
+  if (category.paymentRequired && !category.paymentAmount) {
+    throw new Error("Payment amount is not configured for this category");
+  }
+
+  // Free category should not have payment amount
+  if (!category.paymentRequired && category.paymentAmount) {
+    throw new Error("Invalid payment configuration for this category");
   }
 
   // Check duplicate active complaint
@@ -33,12 +118,11 @@ const createComplaint = async (userId: string, payload: ICreateComplaint) => {
       department: category.department,
       location: payload.location,
 
-      // CLOSED complaint is allowed
       status: {
         not: "CLOSED",
       },
 
-      
+      // isDeleted: false,
     },
   });
 
@@ -64,18 +148,27 @@ const createComplaint = async (userId: string, payload: ICreateComplaint) => {
       department: category.department,
       location: payload.location,
 
-      // Prisma defaults
-      // status: SUBMITTED
-      // paymentStatus: NOT_REQUIRED
+      // Payment configuration
+      paymentAmount: category.paymentRequired
+        ? category.paymentAmount
+        : null,
+
+      paymentStatus: category.paymentRequired
+        ? "PENDING"
+        : "NOT_REQUIRED",
+
+      // Complaint status
+      status: category.paymentRequired
+        ? "PAYMENT_PENDING"
+        : "SUBMITTED",
     },
   });
 
   return complaint;
 };
-
 // Get own complaints
 const getOwnComplaints = async (userId: string) => {
-  return prisma.complaint.findMany({
+  const complaints = await prisma.complaint.findMany({
     where: {
       citizenId: userId,
     },
@@ -87,8 +180,9 @@ const getOwnComplaints = async (userId: string) => {
       createdAt: "desc",
     },
   });
-};
 
+  return complaints;
+};
 // Delete own complaint
 const deleteOwnComplaint = async (userId: string, complaintId: string) => {
   const complaint = await prisma.complaint.findFirst({
