@@ -12,7 +12,7 @@ import { UserRoutes } from "./app/module/user/user.route";
 import { complaintRouter } from "./app/module/complaint/complaint.route";
 import { CategoryRoutes } from "./app/module/category/category.route";
 import { ComplaintAssignmentRoutes } from "./app/module/complaintAssignment/complaint-assignment.route";
-import { PaymentRoutes } from "./app/module/payment/payment.route";
+import { getBkashIdToken } from "./app/lib/bkash";
 
 const app: Application = express();
 app.use(
@@ -30,22 +30,22 @@ app.use("/api/v1/user", UserRoutes);
 app.use("/api/v1/complaint", complaintRouter);
 app.use("/api/v1/categories", CategoryRoutes);
 app.use("/api/v1/complaint-assignments", ComplaintAssignmentRoutes);
-app.use("/api/v1/payments", PaymentRoutes);
 
-// app.get("/test",async (req: Request, res: Response, next: NextFunction) => {
-//   try {
 
-// 	const otp = crypto.randomInt(100000, 999999).toString()
-//     res.status(httpStatus.OK).json({
-//       success: true,
-//       message: "Test route is working fine",
-//       date:otp,
-//     });
-//   } catch (error) {
-//     console.log(error);
-//     next(error);
-//   }
-// });
+app.get("/test", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const grantIdTokenResult = await getBkashIdToken();
+    console.log(grantIdTokenResult);
+    res.status(httpStatus.OK).json({
+      success: true,
+      message: "Test route is working fine",
+      date: null,
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
 // basic route
 app.get("/", (req: Request, res: Response) => {
   res.status(httpStatus.OK).json({

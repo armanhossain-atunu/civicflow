@@ -12,8 +12,8 @@ model Payment {
 
   transactionId        String? @unique
   gatewayTransactionId String? @unique
-
-  gateway String?
+  merchantInvoice      String? @unique
+  gateway              String?
 
   initiatedAt DateTime  @default(now())
   paidAt      DateTime?
