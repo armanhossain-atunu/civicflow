@@ -129,7 +129,6 @@ const createComplaint = async (userId: string, payload: ICreateComplaint) => {
           status: "PENDING",
           method: "BKASH",
           citizenId: userId,
-
           complaintId: newComplaint.id,
         },
       });
@@ -149,7 +148,6 @@ const createComplaint = async (userId: string, payload: ICreateComplaint) => {
 
     include: {
       category: true,
-      payment: true,
     },
   });
 
