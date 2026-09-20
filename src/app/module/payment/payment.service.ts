@@ -96,7 +96,7 @@ const createBkashPayment = async (userId: string, complaintId: string) => {
     merchantInvoiceNumber,
   };
 };
-
+// Execute Bkash payment
 const executeBkashPayment = async (paymentId: string, userId?: string) => {
   const payment = await prisma.payment.findFirst({
     where: {
@@ -161,8 +161,57 @@ const executeBkashPayment = async (paymentId: string, userId?: string) => {
     return paidPayment;
   });
 };
-
+// Get my payments
+const getMyPayments = async (userId: string) => {
+  return prisma.payment.findMany({
+    where: {
+      citizenId: userId,
+    },
+    include: {
+      complaint: {
+        select: {
+          id: true,
+          trackingId: true,
+          title: true,
+          status: true,
+          paymentStatus: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
+// Get all payments by admin and manager
+const getAllPayments = async () => {
+  return prisma.payment.findMany({
+    include: {
+      citizen: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      complaint: {
+        select: {
+          id: true,
+          trackingId: true,
+          title: true,
+          status: true,
+          paymentStatus: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
 export const paymentService = {
   createBkashPayment,
   executeBkashPayment,
+  getMyPayments,
+  getAllPayments,
 };

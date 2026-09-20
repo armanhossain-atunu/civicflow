@@ -13,7 +13,7 @@ const createAssignment = async (req: Request, res: Response) => {
     data: result,
   });
 };
-
+// getComplaintAssignments by manager admin and technician
 const getComplaintAssignments = async (req: Request, res: Response) => {
   const result = await ComplaintAssignmentService.getComplaintAssignments(
     req.params.complaintId as string,
@@ -25,7 +25,7 @@ const getComplaintAssignments = async (req: Request, res: Response) => {
     data: result,
   });
 };
-
+// getMyAssignments by technician
 const getMyAssignments = async (req: Request, res: Response) => {
   const result = await ComplaintAssignmentService.getMyAssignments(
     req.user!.userId,
@@ -37,12 +37,13 @@ const getMyAssignments = async (req: Request, res: Response) => {
     data: result,
   });
 };
-
+// completeAssignment by technician
 const completeAssignment = async (req: Request, res: Response) => {
-  const result = await ComplaintAssignmentService.completeAssignment(
-    req.user!.userId,
-    req.params.assignmentId as string,
-  );
+  const result =  await ComplaintAssignmentService.completeAssignment(
+      req.user!.userId,
+      req.params.assignmentId as string,
+      req.body,
+    );
 
   res.status(200).json({
     success: true,

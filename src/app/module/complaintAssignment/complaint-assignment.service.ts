@@ -1,3 +1,4 @@
+import { ComplaintStatus } from "../../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma";
 import type { ICreateComplaintAssignment } from "./complaint-assignment.interface";
 
@@ -201,9 +202,94 @@ const getMyAssignments = async (technicianId: string) => {
   });
 };
 
+// const completeAssignment = async (
+//   technicianId: string,
+//   assignmentId: string,
+// ) => {
+//   const assignment = await prisma.complaintAssignment.findUnique({
+//     where: {
+//       id: assignmentId,
+//     },
+//   });
+
+//   if (!assignment) {
+//     throw new Error("Assignment not found");
+//   }
+
+//   if (assignment.assignedToId !== technicianId) {
+//     throw new Error("You are not assigned to this complaint");
+//   }
+
+//   if (assignment.completedAt) {
+//     throw new Error("This assignment is already completed");
+//   }
+
+//   const result = await prisma.complaintAssignment.update({
+//     where: {
+//       id: assignmentId,
+//     },
+
+//     data: {
+//       completedAt: new Date(),
+//     },
+//   });
+
+//   return result;
+// };
+// const completeAssignment = async (
+//   technicianId: string,
+//   assignmentId: string,
+// ) => {
+//   const assignment = await prisma.complaintAssignment.findUnique({
+//     where: {
+//       id: assignmentId,
+//     },
+//   });
+
+//   if (!assignment) {
+//     throw new Error("Assignment not found");
+//   }
+
+//   if (assignment.assignedToId !== technicianId) {
+//     throw new Error("You are not assigned to this complaint");
+//   }
+
+//   if (assignment.completedAt) {
+//     throw new Error("This assignment is already completed");
+//   }
+
+//   const result = await prisma.$transaction(async (tx) => {
+//     // 1. Complete assignment
+//     const updatedAssignment =
+//       await tx.complaintAssignment.update({
+//         where: {
+//           id: assignmentId,
+//         },
+//         data: {
+//           completedAt: new Date(),
+//         },
+//       });
+
+//     // 2. Update complaint status
+//     await tx.complaint.update({
+//       where: {
+//         id: assignment.complaintId,
+//       },
+//       data: {
+//         status: "RESOLVED",
+//       },
+//     });
+
+//     return updatedAssignment;
+//   });
+
+//   return result;
+// };
+
 const completeAssignment = async (
   technicianId: string,
   assignmentId: string,
+  payload: { status: ComplaintStatus },
 ) => {
   const assignment = await prisma.complaintAssignment.findUnique({
     where: {
@@ -223,14 +309,43 @@ const completeAssignment = async (
     throw new Error("This assignment is already completed");
   }
 
-  const result = await prisma.complaintAssignment.update({
-    where: {
-      id: assignmentId,
-    },
+  const result = await prisma.$transaction(async (tx) => {
+    const updatedAssignment =
+      await tx.complaintAssignment.update({
+        where: {
+          id: assignmentId,
+        },
+        data: {
+          completedAt:
+            payload.status === ComplaintStatus.RESOLVED
+              ? new Date()
+              : null,
+        },
+      });
 
-    data: {
-      completedAt: new Date(),
-    },
+    const updatedComplaint = await tx.complaint.update({
+      where: {
+        id: assignment.complaintId,
+      },
+        data: {
+        status: payload.status,
+      },
+      select: {
+        id: true,
+        trackingId: true,
+        title: true,
+        status: true,
+        priority: true,
+        categoryName: true,
+        department: true,
+        location: true,
+      },
+    });
+
+    return {
+      assignment: updatedAssignment,
+      complaint: updatedComplaint,
+    };
   });
 
   return result;

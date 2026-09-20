@@ -18,6 +18,12 @@ router.post(
   validateRequest(executeBkashPaymentSchema),
   paymentController.executeBkashPayment,
 );
+router.get("/my-payments", auth(Role.CITIZEN), paymentController.getMyPayments);
+router.get(
+  "/",
+  auth(Role.ADMIN, Role.MANAGER),
+  paymentController.getAllPayments,
+);
 router.get("/bkash/callback", paymentController.bkashCallback);
 
 export const paymentRouter = router;

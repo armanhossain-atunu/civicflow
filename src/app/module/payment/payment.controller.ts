@@ -43,9 +43,36 @@ const bkashCallback = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const getMyPayments = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
 
+    const result = await paymentService.getMyPayments(userId);
+
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "Your payments retrieved successfully",
+      data: result,
+    });
+  },
+);
+const getAllPayments = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await paymentService.getAllPayments();
+
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "All payments retrieved successfully",
+      data: result,
+    });
+  },
+);
 export const paymentController = {
   createBkashPayment,
   executeBkashPayment,
   bkashCallback,
+  getMyPayments,
+  getAllPayments,
 };
