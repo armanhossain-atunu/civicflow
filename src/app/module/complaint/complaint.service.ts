@@ -1,82 +1,11 @@
 import { prisma } from "../../lib/prisma";
 import type { ICreateComplaint } from "./complaint.interface";
 
-// Create complaint
-// const createComplaint = async (userId: string, payload: ICreateComplaint) => {
-//   // Check category
-//   const category = await prisma.category.findUnique({
-//     where: {
-//       id: payload.categoryId,
-//     },
-//   });
+const createComplaint = async (userId: string, payload: ICreateComplaint) => {
+  // ============================================
+  // 1. Check Category
+  // ============================================
 
-//   if (!category) {
-//     throw new Error("Category not found");
-//   }
-
-//   // Category must be active
-//   if (!category.isActive) {
-//     throw new Error("This category is not active");
-//   }
-
-//   // Category department and complaint department must match
-//   if (category.department !== payload.department) {
-//     throw new Error("Selected department does not match the selected category");
-//   }
-
-//   // Check duplicate active complaint
-//   const existingComplaint = await prisma.complaint.findFirst({
-//     where: {
-//       citizenId: userId,
-//       categoryId: payload.categoryId,
-//       categoryName: category.name,
-//       department: category.department,
-//       location: payload.location,
-
-//       // CLOSED complaint is allowed
-//       status: {
-//         not: "CLOSED",
-//       },
-
-      
-//     },
-//   });
-
-//   if (existingComplaint) {
-//     throw new Error(
-//       "You already have an active complaint for this category, department and location",
-//     );
-//   }
-
-//   const trackingId = `CF-${Date.now()}`;
-
-//   const complaint = await prisma.complaint.create({
-//     data: {
-//       trackingId,
-//       title: payload.title,
-//       description: payload.description,
-
-//       citizenId: userId,
-//       categoryId: payload.categoryId,
-
-//       // Snapshot from Category
-//       categoryName: category.name,
-//       department: category.department,
-//       location: payload.location,
-
-//       // Prisma defaults
-//       // status: SUBMITTED
-//       // paymentStatus: NOT_REQUIRED
-//     },
-//   });
-
-//   return complaint;
-// };
-const createComplaint = async (
-  userId: string,
-  payload: ICreateComplaint,
-) => {
-  // Check category
   const category = await prisma.category.findUnique({
     where: {
       id: payload.categoryId,
@@ -87,29 +16,38 @@ const createComplaint = async (
     throw new Error("Category not found");
   }
 
-  // Category must be active
+  // ============================================
+  // 2. Category must be active
+  // ============================================
+
   if (!category.isActive) {
     throw new Error("This category is not active");
   }
 
-  // Category department and complaint department must match
+  // ============================================
+  // 3. Department must match
+  // ============================================
+
   if (category.department !== payload.department) {
-    throw new Error(
-      "Selected department does not match the selected category",
-    );
+    throw new Error("Selected department does not match the selected category");
   }
 
-  // Paid category must have payment amount
+  // ============================================
+  // 4. Validate payment configuration
+  // ============================================
+
   if (category.paymentRequired && !category.paymentAmount) {
     throw new Error("Payment amount is not configured for this category");
   }
 
-  // Free category should not have payment amount
   if (!category.paymentRequired && category.paymentAmount) {
     throw new Error("Invalid payment configuration for this category");
   }
 
-  // Check duplicate active complaint
+  // ============================================
+  // 5. Check duplicate active complaint
+  // ============================================
+
   const existingComplaint = await prisma.complaint.findFirst({
     where: {
       citizenId: userId,
@@ -122,7 +60,7 @@ const createComplaint = async (
         not: "CLOSED",
       },
 
-      // isDeleted: false,
+    
     },
   });
 
@@ -132,50 +70,107 @@ const createComplaint = async (
     );
   }
 
+  // ============================================
+  // 6. Generate tracking ID
+  // ============================================
+
   const trackingId = `CF-${Date.now()}`;
 
-  const complaint = await prisma.complaint.create({
-    data: {
-      trackingId,
-      title: payload.title,
-      description: payload.description,
+  // ============================================
+  // 7. Create Complaint + Payment
+  //    inside transaction
+  // ============================================
 
-      citizenId: userId,
-      categoryId: payload.categoryId,
+  const complaint = await prisma.$transaction(async (tx) => {
+    // ------------------------------------------
+    // Create Complaint
+    // ------------------------------------------
 
-      // Snapshot from Category
-      categoryName: category.name,
-      department: category.department,
-      location: payload.location,
+    const newComplaint = await tx.complaint.create({
+      data: {
+        trackingId,
 
-      // Payment configuration
-      paymentAmount: category.paymentRequired
-        ? category.paymentAmount
-        : null,
+        title: payload.title,
+        description: payload.description,
 
-      paymentStatus: category.paymentRequired
-        ? "PENDING"
-        : "NOT_REQUIRED",
+        citizenId: userId,
+        categoryId: payload.categoryId,
 
-      // Complaint status
-      status: category.paymentRequired
-        ? "PAYMENT_PENDING"
-        : "SUBMITTED",
+        // Category snapshot
+        categoryName: category.name,
+        department: category.department,
+        location: payload.location,
+
+        // --------------------------------------
+        // Payment configuration
+        // --------------------------------------
+
+        paymentAmount: category.paymentRequired ? category.paymentAmount : null,
+
+        paymentStatus: category.paymentRequired ? "PENDING" : "NOT_REQUIRED",
+
+        // --------------------------------------
+        // Complaint status
+        // --------------------------------------
+
+        status: category.paymentRequired ? "PAYMENT_PENDING" : "SUBMITTED",
+      },
+    });
+
+    // ------------------------------------------
+    // Create Payment
+    // Only for paid category
+    // ------------------------------------------
+
+    if (category.paymentRequired) {
+      await tx.payment.create({
+        data: {
+          amount: category.paymentAmount!,
+          status: "PENDING",
+          method: "BKASH",
+          citizenId: userId,
+
+          complaintId: newComplaint.id,
+        },
+      });
+    }
+
+    return newComplaint;
+  });
+
+  // ============================================
+  // 8. Return Complaint + Payment
+  // ============================================
+
+  const result = await prisma.complaint.findUnique({
+    where: {
+      id: complaint.id,
+    },
+
+    include: {
+      category: true,
+      payment: true,
     },
   });
 
-  return complaint;
+  return result;
 };
-// Get own complaints
+
+// ==================================================
+// Get Own Complaints
+// ==================================================
+
 const getOwnComplaints = async (userId: string) => {
   const complaints = await prisma.complaint.findMany({
     where: {
       citizenId: userId,
     },
+
     include: {
       category: true,
       payment: true,
     },
+
     orderBy: {
       createdAt: "desc",
     },
@@ -183,41 +178,13 @@ const getOwnComplaints = async (userId: string) => {
 
   return complaints;
 };
-// Delete own complaint
-const deleteOwnComplaint = async (userId: string, complaintId: string) => {
-  const complaint = await prisma.complaint.findFirst({
-    where: {
-      id: complaintId,
-      citizenId: userId,
-      isDeleted: false,
-    },
-  });
 
-  if (!complaint) {
-    throw new Error("Complaint not found");
-  }
+// ==================================================
+// Get All Complaints
+// ==================================================
 
-  // Only allow deletion before processing starts
-  if (
-    complaint.status !== "SUBMITTED" &&
-    complaint.status !== "PAYMENT_PENDING"
-  ) {
-    throw new Error("Complaint cannot be deleted after processing has started");
-  }
-
-  await prisma.complaint.update({
-    where: {
-      id: complaintId,
-    },
-    data: {
-      isDeleted: true,
-      deletedAt: new Date(),
-    },
-  });
-};
 const getAllComplaints = async () => {
-  return prisma.complaint.findMany({
-   
+  const complaints = await prisma.complaint.findMany({
     include: {
       category: true,
 
@@ -258,7 +225,70 @@ const getAllComplaints = async () => {
       createdAt: "desc",
     },
   });
+
+  return complaints;
 };
+
+// ==================================================
+// Delete Own Complaint
+// ==================================================
+
+const deleteOwnComplaint = async (userId: string, complaintId: string) => {
+  // ------------------------------------------
+  // Find complaint
+  // ------------------------------------------
+
+  const complaint = await prisma.complaint.findFirst({
+    where: {
+      id: complaintId,
+      citizenId: userId,
+
+    },
+
+    include: {
+      payment: true,
+    },
+  });
+
+  if (!complaint) {
+    throw new Error("Complaint not found");
+  }
+
+  // ------------------------------------------
+  // Only allow deletion before processing
+  // ------------------------------------------
+
+  if (
+    complaint.status !== "SUBMITTED" &&
+    complaint.status !== "PAYMENT_PENDING"
+  ) {
+    throw new Error("Complaint cannot be deleted after processing has started");
+  }
+
+  // ------------------------------------------
+  // Soft delete complaint
+  // ------------------------------------------
+
+  await prisma.complaint.update({
+    where: {
+      id: complaintId,
+    },
+
+    data: {
+      isDeleted: true,
+      deletedAt: new Date(),
+    },
+  });
+
+  return {
+    message: "Complaint deleted successfully",
+  };
+};
+
+// ==================================================
+// Export
+// ==================================================
+
 export const complaintService = {
   createComplaint,
   getOwnComplaints,

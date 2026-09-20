@@ -5,14 +5,15 @@ import cors from "cors";
 import express, { Application, NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
 import config from "./app/config";
+import { getBkashIdToken } from "./app/lib/bkash";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
 import { AuthRoutes } from "./app/module/auth/auth.route";
-import { UserRoutes } from "./app/module/user/user.route";
-import { complaintRouter } from "./app/module/complaint/complaint.route";
 import { CategoryRoutes } from "./app/module/category/category.route";
+import { complaintRouter } from "./app/module/complaint/complaint.route";
 import { ComplaintAssignmentRoutes } from "./app/module/complaintAssignment/complaint-assignment.route";
-import { getBkashIdToken } from "./app/lib/bkash";
+import { paymentRouter } from "./app/module/payment/payment.route";
+import { UserRoutes } from "./app/module/user/user.route";
 
 const app: Application = express();
 app.use(
@@ -30,7 +31,7 @@ app.use("/api/v1/user", UserRoutes);
 app.use("/api/v1/complaint", complaintRouter);
 app.use("/api/v1/categories", CategoryRoutes);
 app.use("/api/v1/complaint-assignments", ComplaintAssignmentRoutes);
-
+app.use("/api/v1/payments", paymentRouter);
 
 app.get("/test", async (req: Request, res: Response, next: NextFunction) => {
   try {
