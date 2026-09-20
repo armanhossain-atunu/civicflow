@@ -1,6 +1,9 @@
 import { UploadApiResponse } from "cloudinary";
 import { cloudinary } from "../../lib/cloudinary";
 import { prisma } from "../../lib/prisma";
+import { Role, UserStatus } from "../../../generated/prisma/enums";
+import { AppError } from "../../utils/AppError";
+import httpStatus from "http-status";
 
 const uploadProfileImage = async (buffer: Buffer, userId: string) => {
 	const currentUser = await prisma.user.findUnique({
@@ -58,7 +61,162 @@ const uploadProfileImage = async (buffer: Buffer, userId: string) => {
 
 	return updatedUser;
 };
+const getAllUsers = async () => {
+  return prisma.user.findMany({
+    where: {
+      isDeleted: false,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      authProvider: true,
+      emailVerified: true,
+      imageUrl: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
+const updateUserStatus = async (
+  userId: string,
+  status: UserStatus,
+) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
 
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (user.isDeleted) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Deleted user cannot be updated",
+    );
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      status,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      authProvider: true,
+      emailVerified: true,
+      imageUrl: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return updatedUser;
+};
+
+const updateUserRole = async (
+  userId: string,
+  role: Role,
+) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (user.isDeleted) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Deleted user role cannot be changed",
+    );
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      role ,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      authProvider: true,
+      emailVerified: true,
+      imageUrl: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return updatedUser;
+};
+
+const deleteUser = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (user.isDeleted) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "User is already deleted",
+    );
+  }
+
+  const deletedUser = await prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      isDeleted: true,
+      deletedAt: new Date(),
+      status: UserStatus.DELETED,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      isDeleted: true,
+      deletedAt: true,
+    },
+  });
+
+  return deletedUser;
+};
 export const UserServices = {
 	uploadProfileImage,
+	getAllUsers,
+	updateUserStatus,
+	updateUserRole,
+	deleteUser,
 };
