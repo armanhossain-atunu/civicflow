@@ -7,11 +7,11 @@ model ComplaintAssignment {
   assignedAt   DateTime  @default(now())
   completedAt  DateTime?
 
-  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  assignedTo User @relation("ComplaintAssignedTo", fields: [assignedToId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  assignedTo User @relation("ComplaintAssignedTo", fields: [assignedToId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  assignedBy User @relation("ComplaintAssignedBy", fields: [assignedById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  assignedBy User @relation("ComplaintAssignedBy", fields: [assignedById], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

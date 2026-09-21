@@ -6,60 +6,60 @@ import { AppError } from "../../utils/AppError";
 import httpStatus from "http-status";
 
 const uploadProfileImage = async (buffer: Buffer, userId: string) => {
-	const currentUser = await prisma.user.findUnique({
-		where: {
-			id: userId,
-		},
-		select: {
-			imagePublicId: true,
-			imageUrl: true,
-		},
-	});
+  const currentUser = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      imagePublicId: true,
+      imageUrl: true,
+    },
+  });
 
-	const cloudinaryResult = await new Promise<UploadApiResponse>(
-		(resolve, reject) => {
-			cloudinary.uploader
-				.upload_stream(
-					{
-						resource_type: "auto",
-					},
+  const cloudinaryResult = await new Promise<UploadApiResponse>(
+    (resolve, reject) => {
+      cloudinary.uploader
+        .upload_stream(
+          {
+            resource_type: "auto",
+          },
 
-					async (error, result) => {
-						if (error) {
-							return reject(error);
-						}
+          async (error, result) => {
+            if (error) {
+              return reject(error);
+            }
 
-						if (!result) {
-							return reject(new Error("No result returned from Cloudinary"));
-						}
+            if (!result) {
+              return reject(new Error("No result returned from Cloudinary"));
+            }
 
-						resolve(result);
-					},
-				)
-				.end(buffer);
-		},
-	);
+            resolve(result);
+          },
+        )
+        .end(buffer);
+    },
+  );
 
-	const updatedUser = await prisma.user.update({
-		where: {
-			id: userId,
-		},
+  const updatedUser = await prisma.user.update({
+    where: {
+      id: userId,
+    },
 
-		data: {
-			imageUrl: cloudinaryResult.secure_url,
-			imagePublicId: cloudinaryResult.public_id,
-		},
+    data: {
+      imageUrl: cloudinaryResult.secure_url,
+      imagePublicId: cloudinaryResult.public_id,
+    },
 
-		omit: {
-			password: true,
-		},
-	});
+    omit: {
+      password: true,
+    },
+  });
 
-	if (currentUser?.imagePublicId && currentUser.imageUrl) {
-		await cloudinary.uploader.destroy(currentUser.imagePublicId);
-	}
+  if (currentUser?.imagePublicId && currentUser.imageUrl) {
+    await cloudinary.uploader.destroy(currentUser.imagePublicId);
+  }
 
-	return updatedUser;
+  return updatedUser;
 };
 const getAllUsers = async () => {
   return prisma.user.findMany({
@@ -83,10 +83,7 @@ const getAllUsers = async () => {
     },
   });
 };
-const updateUserStatus = async (
-  userId: string,
-  status: UserStatus,
-) => {
+const updateUserStatus = async (userId: string, status: UserStatus) => {
   const user = await prisma.user.findUnique({
     where: {
       id: userId,
@@ -128,10 +125,7 @@ const updateUserStatus = async (
   return updatedUser;
 };
 
-const updateUserRole = async (
-  userId: string,
-  role: Role,
-) => {
+const updateUserRole = async (userId: string, role: Role) => {
   const user = await prisma.user.findUnique({
     where: {
       id: userId,
@@ -154,7 +148,7 @@ const updateUserRole = async (
       id: userId,
     },
     data: {
-      role ,
+      role,
     },
     select: {
       id: true,
@@ -173,6 +167,7 @@ const updateUserRole = async (
   return updatedUser;
 };
 
+// Delete user
 const deleteUser = async (userId: string) => {
   const user = await prisma.user.findUnique({
     where: {
@@ -184,39 +179,21 @@ const deleteUser = async (userId: string) => {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  if (user.isDeleted) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "User is already deleted",
-    );
-  }
-
-  const deletedUser = await prisma.user.update({
+  await prisma.user.delete({
     where: {
       id: userId,
     },
-    data: {
-      isDeleted: true,
-      deletedAt: new Date(),
-      status: UserStatus.DELETED,
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      status: true,
-      isDeleted: true,
-      deletedAt: true,
-    },
   });
 
-  return deletedUser;
+  return {
+    id: userId,
+    message: "User deleted successfully",
+  };
 };
 export const UserServices = {
-	uploadProfileImage,
-	getAllUsers,
-	updateUserStatus,
-	updateUserRole,
-	deleteUser,
+  uploadProfileImage,
+  getAllUsers,
+  updateUserStatus,
+  updateUserRole,
+  deleteUser,
 };
