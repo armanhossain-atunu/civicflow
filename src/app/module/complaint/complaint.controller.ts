@@ -3,7 +3,7 @@ import { catchAsync } from "../../utils/catchAsync";
 import { complaintService } from "./complaint.service";
 import { sendResponse } from "../../utils/sendResponse";
 import httpStatus from "http-status";
-
+// create Complaint
 const createComplaint = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
 
@@ -15,18 +15,20 @@ const createComplaint = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
-
+// get Own Complaints
 const getOwnComplaints = catchAsync(async (req: Request, res: Response) => {
-  const result = await complaintService.getOwnComplaints(req.user!.userId);
+  const userId = req.user!.userId;
+
+  const result = await complaintService.getOwnComplaints(userId, req.query);
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: httpStatus.OK,
     success: true,
-    message: "Own complaints fetched successfully",
+    message: "Own complaints retrieved successfully",
     data: result,
   });
 });
-
+// delete Own Complaint
 const deleteOwnComplaint = catchAsync(async (req: Request, res: Response) => {
   await complaintService.deleteOwnComplaint(
     req.user!.userId,
@@ -40,20 +42,17 @@ const deleteOwnComplaint = catchAsync(async (req: Request, res: Response) => {
     data: null,
   });
 });
-const getAllComplaints = catchAsync(
-  async (req: Request, res: Response) => {
-    const result = await complaintService.getAllComplaints(
-      req.query,
-    );
+// get All Complaints
+const getAllComplaints = catchAsync(async (req: Request, res: Response) => {
+  const result = await complaintService.getAllComplaints(req.query);
 
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: "Complaints retrieved successfully",
-      data: result,
-    });
-  },
-);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Complaints retrieved successfully",
+    data: result,
+  });
+});
 
 export const complaintController = {
   createComplaint,

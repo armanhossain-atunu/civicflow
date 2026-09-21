@@ -35,8 +35,7 @@ const callBkash = async (
   if (!response.ok || result.statusCode !== "0000") {
     throw new AppError(
       httpStatus.BAD_GATEWAY,
-      result.statusMessage || "Bkash payment request failed",
-    );
+      "Bkash payment request failed",    );
   }
 
   return result;
@@ -128,10 +127,11 @@ const executeBkashPayment = async (paymentId: string, userId?: string) => {
     await prisma.payment.update({
       where: { id: payment.id },
       data: {
+        gatewayTransactionId: result.paymentID,
         status: "FAILED",
         failedAt: new Date(),
         failureReason:
-          result.statusMessage || "Bkash payment was not completed",
+           "Bkash payment was not completed",
       },
     });
     throw new AppError(

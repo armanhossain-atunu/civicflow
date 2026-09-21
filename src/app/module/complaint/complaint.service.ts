@@ -159,75 +159,93 @@ const createComplaint = async (userId: string, payload: ICreateComplaint) => {
 // ==================================================
 // Get Own Complaints
 // ==================================================
+const getOwnComplaints = async (
+  userId: string,
+  query: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: ComplaintStatus;
+    sortBy?: "createdAt" | "title" | "status";
+    sortOrder?: "asc" | "desc";
+  },
+) => {
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
 
-const getOwnComplaints = async (userId: string) => {
-  const complaints = await prisma.complaint.findMany({
-    where: {
-      citizenId: userId,
-    },
+  const skip = (page - 1) * limit;
 
-    include: {
-      category: true,
-      payment: true,
-    },
+  const search = query.search?.trim();
 
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  const where: Prisma.ComplaintWhereInput = {
+    citizenId: userId,
 
-  return complaints;
+    ...(query.status && {
+      status: query.status,
+    }),
+
+    ...(search && {
+      OR: [
+        {
+          title: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          category: {
+            name: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+        },
+      ],
+    }),
+  };
+
+  const sortBy = query.sortBy || "createdAt";
+  const sortOrder = query.sortOrder || "desc";
+
+  const [complaints] = await Promise.all([
+    prisma.complaint.findMany({
+      where,
+
+      include: {
+        category: true,
+        payment: true,
+      },
+
+      skip,
+      take: limit,
+
+      orderBy: {
+        [sortBy]: sortOrder,
+      },
+    }),
+
+    prisma.complaint.count({
+      where,
+    }),
+  ]);
+
+  return {
+    // meta: {
+    //   page,
+    //   limit,
+    //   total,
+    //   totalPage: Math.ceil(total / limit),
+    // },
+
+    data: complaints,
+  };
 };
+
 
 // ==================================================
 // Get All Complaints
 // ==================================================
 
-// const getAllComplaints = async () => {
-//   const complaints = await prisma.complaint.findMany({
-//     include: {
-//       category: true,
-
-//       citizen: {
-//         select: {
-//           id: true,
-//           name: true,
-//           email: true,
-//         },
-//       },
-
-//       assignments: {
-//         include: {
-//           assignedTo: {
-//             select: {
-//               id: true,
-//               name: true,
-//               email: true,
-//               role: true,
-//             },
-//           },
-
-//           assignedBy: {
-//             select: {
-//               id: true,
-//               name: true,
-//               email: true,
-//               role: true,
-//             },
-//           },
-//         },
-//       },
-
-//       payment: true,
-//     },
-
-//     orderBy: {
-//       createdAt: "desc",
-//     },
-//   });
-
-//   return complaints;
-// };
 const getAllComplaints = async (query: {
   page?: number;
   limit?: number;
@@ -271,7 +289,7 @@ const getAllComplaints = async (query: {
   const sortBy = query.sortBy || "createdAt";
   const sortOrder = query.sortOrder || "desc";
 
-  const [complaints, total] = await Promise.all([
+  const [complaints] = await Promise.all([
     prisma.complaint.findMany({
       where,
 
@@ -325,12 +343,12 @@ const getAllComplaints = async (query: {
   ]);
 
   return {
-    meta: {
-      page,
-      limit,
-      total,
-      totalPage: Math.ceil(total / limit),
-    },
+    // meta: {
+    //   page,
+    //   limit,
+    //   total,
+    //   totalPage: Math.ceil(total / limit),
+    // },
 
     data: complaints,
   };
