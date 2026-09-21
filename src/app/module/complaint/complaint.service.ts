@@ -1,3 +1,4 @@
+import { ComplaintStatus, Prisma } from "../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
 import type { ICreateComplaint } from "./complaint.interface";
 
@@ -154,6 +155,7 @@ const createComplaint = async (userId: string, payload: ICreateComplaint) => {
   return result;
 };
 
+
 // ==================================================
 // Get Own Complaints
 // ==================================================
@@ -181,52 +183,158 @@ const getOwnComplaints = async (userId: string) => {
 // Get All Complaints
 // ==================================================
 
-const getAllComplaints = async () => {
-  const complaints = await prisma.complaint.findMany({
-    include: {
-      category: true,
+// const getAllComplaints = async () => {
+//   const complaints = await prisma.complaint.findMany({
+//     include: {
+//       category: true,
 
-      citizen: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
+//       citizen: {
+//         select: {
+//           id: true,
+//           name: true,
+//           email: true,
+//         },
+//       },
+
+//       assignments: {
+//         include: {
+//           assignedTo: {
+//             select: {
+//               id: true,
+//               name: true,
+//               email: true,
+//               role: true,
+//             },
+//           },
+
+//           assignedBy: {
+//             select: {
+//               id: true,
+//               name: true,
+//               email: true,
+//               role: true,
+//             },
+//           },
+//         },
+//       },
+
+//       payment: true,
+//     },
+
+//     orderBy: {
+//       createdAt: "desc",
+//     },
+//   });
+
+//   return complaints;
+// };
+const getAllComplaints = async (query: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: ComplaintStatus;
+  sortBy?: "createdAt" | "title" | "status";
+  sortOrder?: "asc" | "desc";
+}) => {
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+
+  const skip = (page - 1) * limit;
+
+  const search = query.search?.trim();
+
+  const where: Prisma.ComplaintWhereInput = {
+    ...(query.status && {
+      status: query.status,
+    }),
+
+    ...(search && {
+      OR: [
+        {
+          title: {
+            contains: search,
+            mode: "insensitive",
+          },
         },
-      },
-
-      assignments: {
-        include: {
-          assignedTo: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
+        {
+          category: {
+            name: {
+              contains: search,
+              mode: "insensitive",
             },
           },
+        },
+      ],
+    }),
+  };
 
-          assignedBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
+  const sortBy = query.sortBy || "createdAt";
+  const sortOrder = query.sortOrder || "desc";
+
+  const [complaints, total] = await Promise.all([
+    prisma.complaint.findMany({
+      where,
+
+      include: {
+        category: true,
+
+        citizen: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+
+        assignments: {
+          include: {
+            assignedTo: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+              },
+            },
+
+            assignedBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+              },
             },
           },
         },
+
+        payment: true,
       },
 
-      payment: true,
+      skip,
+      take: limit,
+
+      orderBy: {
+        [sortBy]: sortOrder,
+      },
+    }),
+
+    prisma.complaint.count({
+      where,
+    }),
+  ]);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage: Math.ceil(total / limit),
     },
 
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
-
-  return complaints;
+    data: complaints,
+  };
 };
-
 // ==================================================
 // Delete Own Complaint
 // ==================================================

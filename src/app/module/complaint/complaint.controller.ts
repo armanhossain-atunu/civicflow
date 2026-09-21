@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { catchAsync } from "../../utils/catchAsync";
 import { complaintService } from "./complaint.service";
 import { sendResponse } from "../../utils/sendResponse";
+import httpStatus from "http-status";
 
 const createComplaint = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
@@ -39,16 +40,20 @@ const deleteOwnComplaint = catchAsync(async (req: Request, res: Response) => {
     data: null,
   });
 });
-const getAllComplaints = catchAsync(async (req: Request, res: Response) => {
-  const result = await complaintService.getAllComplaints();
+const getAllComplaints = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await complaintService.getAllComplaints(
+      req.query,
+    );
 
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: "All complaints fetched successfully",
-    data: result,
-  });
-});
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Complaints retrieved successfully",
+      data: result,
+    });
+  },
+);
 
 export const complaintController = {
   createComplaint,

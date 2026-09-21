@@ -15,7 +15,7 @@ router.post(
 );
 router.get(
   "/",
-  auth(Role.ADMIN, Role.MANAGER, Role.TECHNICIAN),
+  auth(Role.ADMIN, Role.MANAGER, Role.TECHNICIAN, Role.CITIZEN),
   complaintController.getAllComplaints,
 );
 router.get("/my", auth(Role.CITIZEN), complaintController.getOwnComplaints);
