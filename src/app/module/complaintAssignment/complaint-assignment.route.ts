@@ -42,4 +42,10 @@ router.patch(
   ComplaintAssignmentController.completeAssignment,
 );
 
+router.patch(
+  "/:complaintId/close",
+  auth(Role.MANAGER, Role.ADMIN),
+  ComplaintAssignmentController.closeComplaint,
+);
+
 export const ComplaintAssignmentRoutes = router;

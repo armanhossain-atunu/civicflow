@@ -24,5 +24,10 @@ router.delete(
   auth(Role.CITIZEN),
   complaintController.deleteOwnComplaint,
 );
+router.get(
+  "/:complaintId",
+  auth(Role.CITIZEN),
+complaintController.getOwnComplaint
+);
 
 export const complaintRouter = router;

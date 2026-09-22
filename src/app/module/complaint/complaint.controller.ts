@@ -1,8 +1,10 @@
+/** biome-ignore-all lint/style/noNonNullAssertion: <explanation> */
 import { Request, Response } from "express";
 import { catchAsync } from "../../utils/catchAsync";
 import { complaintService } from "./complaint.service";
 import { sendResponse } from "../../utils/sendResponse";
 import httpStatus from "http-status";
+
 // create Complaint
 const createComplaint = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user!.userId;
@@ -28,6 +30,24 @@ const getOwnComplaints = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
+const getOwnComplaint = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { complaintId } = req.params;
+
+  const result = await complaintService.getOwnComplaint(
+    complaintId as string,
+    userId,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Own complaint retrieved successfully",
+    data: result,
+  });
+});
+
 // delete Own Complaint
 const deleteOwnComplaint = catchAsync(async (req: Request, res: Response) => {
   await complaintService.deleteOwnComplaint(
@@ -57,6 +77,7 @@ const getAllComplaints = catchAsync(async (req: Request, res: Response) => {
 export const complaintController = {
   createComplaint,
   getOwnComplaints,
+  getOwnComplaint,
   getAllComplaints,
   deleteOwnComplaint,
 };

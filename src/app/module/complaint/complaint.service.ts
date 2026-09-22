@@ -1,6 +1,8 @@
 import { ComplaintStatus, Prisma } from "../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
+import { AppError } from "../../utils/AppError";
 import type { ICreateComplaint } from "./complaint.interface";
+import httpStatus from "http-status";
 
 const createComplaint = async (userId: string, payload: ICreateComplaint) => {
   // ============================================
@@ -60,8 +62,6 @@ const createComplaint = async (userId: string, payload: ICreateComplaint) => {
       status: {
         not: "CLOSED",
       },
-
-    
     },
   });
 
@@ -155,7 +155,6 @@ const createComplaint = async (userId: string, payload: ICreateComplaint) => {
   return result;
 };
 
-
 // ==================================================
 // Get Own Complaints
 // ==================================================
@@ -241,6 +240,34 @@ const getOwnComplaints = async (
   };
 };
 
+// ==================================================
+// Get Single Own Complaints
+// ==================================================
+const getOwnComplaint = async (
+  complaintId: string,
+  userId: string
+) => {
+  const complaint = await prisma.complaint.findFirst({
+    where: {
+      id: complaintId,
+      citizenId: userId,
+  
+    },
+    include: {
+      category: true,
+      payment: true,
+    },
+  });
+
+  if (!complaint) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Complaint not found"
+    );
+  }
+
+  return complaint;
+};
 
 // ==================================================
 // Get All Complaints
@@ -366,7 +393,6 @@ const deleteOwnComplaint = async (userId: string, complaintId: string) => {
     where: {
       id: complaintId,
       citizenId: userId,
-
     },
 
     include: {
@@ -393,22 +419,22 @@ const deleteOwnComplaint = async (userId: string, complaintId: string) => {
   // Soft delete complaint
   // ------------------------------------------
 
-  await prisma.complaint.update({
-    where: {
-      id: complaintId,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.payment.deleteMany({
+      where: {
+        complaintId,
+      },
+    });
 
-    data: {
-      isDeleted: true,
-      deletedAt: new Date(),
-    },
+    await tx.complaint.delete({
+      where: {
+        id: complaintId,
+      },
+    });
   });
 
-  return {
-    message: "Complaint deleted successfully",
-  };
+  return complaint;
 };
-
 // ==================================================
 // Export
 // ==================================================
@@ -416,6 +442,7 @@ const deleteOwnComplaint = async (userId: string, complaintId: string) => {
 export const complaintService = {
   createComplaint,
   getOwnComplaints,
+  getOwnComplaint,
   getAllComplaints,
   deleteOwnComplaint,
 };

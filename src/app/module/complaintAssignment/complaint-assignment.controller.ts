@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { ComplaintAssignmentService } from "./complaint-assignment.service";
+import { catchAsync } from "../../utils/catchAsync";
 
 const createAssignment = async (req: Request, res: Response) => {
   const result = await ComplaintAssignmentService.createAssignment(
@@ -52,9 +53,27 @@ const completeAssignment = async (req: Request, res: Response) => {
   });
 };
 
+const closeComplaint = catchAsync(
+  async (req: Request, res: Response) => {
+    const { complaintId } = req.params;
+
+    const result =
+      await ComplaintAssignmentService.closeComplaint(
+        complaintId as string,
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Complaint closed successfully",
+      data: result,
+    });
+  },
+);
+
 export const ComplaintAssignmentController = {
   createAssignment,
   getComplaintAssignments,
   getMyAssignments,
   completeAssignment,
+  closeComplaint,
 };
