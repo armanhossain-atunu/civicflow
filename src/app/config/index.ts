@@ -47,6 +47,5 @@ export default {
 	bkash_username: process.env.BKASH_USERNAME!,
 	bkash_password: process.env.BKASH_PASSWORD!,
 	bkash_callback_url:
-		process.env.BKASH_CALLBACK_URL ||
-		`${process.env.BACKEND_URL}/api/v1/payments/bkash/callback`,
+		process.env.BKASH_CALLBACK_URL!,
 };
