@@ -8,21 +8,21 @@ import { executeBkashPaymentSchema } from "./payment.validation";
 const router = Router();
 
 router.post(
-  "/complaint/:complaintId/bkash/create",
-  auth(Role.CITIZEN),
-  paymentController.createBkashPayment,
+	"/complaint/:complaintId/bkash/create",
+	auth(Role.CITIZEN),
+	paymentController.createBkashPayment,
 );
 router.post(
-  "/bkash/execute",
-  auth(Role.CITIZEN),
-  validateRequest(executeBkashPaymentSchema),
-  paymentController.executeBkashPayment,
+	"/bkash/execute",
+	auth(Role.CITIZEN),
+	validateRequest(executeBkashPaymentSchema),
+	paymentController.executeBkashPayment,
 );
 router.get("/my-payments", auth(Role.CITIZEN), paymentController.getMyPayments);
 router.get(
-  "/",
-  auth(Role.ADMIN, Role.MANAGER),
-  paymentController.getAllPayments,
+	"/",
+	auth(Role.ADMIN, Role.MANAGER),
+	paymentController.getAllPayments,
 );
 router.get("/bkash/callback", paymentController.bkashCallback);
 

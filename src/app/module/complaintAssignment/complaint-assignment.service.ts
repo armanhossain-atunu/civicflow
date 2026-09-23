@@ -1,6 +1,8 @@
 import { ComplaintStatus, Role } from "../../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma";
+import { AppError } from "../../utils/AppError";
 import type { ICreateComplaintAssignment } from "./complaint-assignment.interface";
+import httpStatus from "http-status";
 
 const MAX_ACTIVE_ASSIGNMENTS = 6;
 
@@ -10,261 +12,258 @@ const MAX_ACTIVE_ASSIGNMENTS = 6;
 // ======================================================
 
 const createAssignment = async (
-  managerId: string,
-  payload: ICreateComplaintAssignment,
+	managerId: string,
+	payload: ICreateComplaintAssignment,
 ) => {
-  // ------------------------------------------
-  // Check complaint
-  // ------------------------------------------
+	// ------------------------------------------
+	// Check complaint
+	// ------------------------------------------
 
-  const complaint = await prisma.complaint.findUnique({
-    where: {
-      id: payload.complaintId,
-    },
-  });
+	const complaint = await prisma.complaint.findUnique({
+		where: {
+			id: payload.complaintId,
+		},
+	});
 
-  if (!complaint) {
-    throw new Error("Complaint not found");
-  }
+	if (!complaint) {
+		throw new AppError(httpStatus.NOT_FOUND, "Complaint not found");
+	}
 
-  // ------------------------------------------
-  // Closed complaint cannot be assigned
-  // ------------------------------------------
+	// ------------------------------------------
+	// Closed complaint cannot be assigned
+	// ------------------------------------------
 
-  if (complaint.status === ComplaintStatus.CLOSED) {
-    throw new Error("Closed complaint cannot be assigned");
-  }
+	if (complaint.status === ComplaintStatus.CLOSED) {
+		throw new AppError(
+			httpStatus.BAD_REQUEST,
+			"Closed complaint cannot be assigned",
+		);
+	}
 
-  // ------------------------------------------
-  // Check technician
-  // ------------------------------------------
+	// ------------------------------------------
+	// Check technician
+	// ------------------------------------------
 
-  const technician = await prisma.user.findUnique({
-    where: {
-      id: payload.assignedToId,
-    },
-  });
+	const technician = await prisma.user.findUnique({
+		where: {
+			id: payload.assignedToId,
+		},
+	});
 
-  if (!technician) {
-    throw new Error("Technician not found");
-  }
+	if (!technician) {
+		throw new AppError(httpStatus.NOT_FOUND, "Technician not found");
+	}
 
-  // ------------------------------------------
-  // Must be technician
-  // ------------------------------------------
+	// ------------------------------------------
+	// Must be technician
+	// ------------------------------------------
 
-  if (technician.role !== Role.TECHNICIAN) {
-    throw new Error(
-      "Complaint can only be assigned to a technician",
-    );
-  }
+	if (technician.role !== Role.TECHNICIAN) {
+		throw new AppError(
+			httpStatus.BAD_REQUEST,
+			"Complaint can only be assigned to a technician",
+		);
+	}
 
-  // ------------------------------------------
-  // Technician must be active
-  // ------------------------------------------
+	// ------------------------------------------
+	// Technician must be active
+	// ------------------------------------------
 
-  if (technician.status !== "ACTIVE") {
-    throw new Error("This technician is not active");
-  }
+	if (technician.status !== "ACTIVE") {
+		throw new AppError(httpStatus.BAD_REQUEST, "This technician is not active");
+	}
 
-  // ------------------------------------------
-  // Check technician active assignments
-  // Maximum = 6
-  // ------------------------------------------
+	// ------------------------------------------
+	// Check technician active assignments
+	// Maximum = 6
+	// ------------------------------------------
 
-  const activeAssignmentCount =
-    await prisma.complaintAssignment.count({
-      where: {
-        assignedToId: payload.assignedToId,
-        completedAt: null,
+	const activeAssignmentCount = await prisma.complaintAssignment.count({
+		where: {
+			assignedToId: payload.assignedToId,
+			completedAt: null,
 
-        complaint: {
-          isDeleted: false,
-          status: {
-            in: [
-              ComplaintStatus.ASSIGNED,
-              ComplaintStatus.IN_PROGRESS,
-            ],
-          },
-        },
-      },
-    });
+			complaint: {
+				status: {
+					in: [ComplaintStatus.ASSIGNED, ComplaintStatus.IN_PROGRESS],
+				},
+			},
+		},
+	});
 
-  if (activeAssignmentCount >= MAX_ACTIVE_ASSIGNMENTS) {
-    throw new Error(
-      "This technician is unavailable. Maximum 6 active complaints are already assigned.",
-    );
-  }
+	if (activeAssignmentCount >= MAX_ACTIVE_ASSIGNMENTS) {
+		throw new AppError(
+			httpStatus.BAD_REQUEST,
+			"This technician is unavailable. Maximum 6 active complaints are already assigned.",
+		);
+	}
 
-  // ------------------------------------------
-  // Check existing active assignment
-  // ------------------------------------------
+	// ------------------------------------------
+	// Check existing active assignment
+	// ------------------------------------------
 
-  const existingAssignment =
-    await prisma.complaintAssignment.findFirst({
-      where: {
-        complaintId: payload.complaintId,
-        completedAt: null,
-      },
-    });
+	const existingAssignment = await prisma.complaintAssignment.findFirst({
+		where: {
+			complaintId: payload.complaintId,
+			completedAt: null,
+		},
+	});
 
-  if (existingAssignment) {
-    throw new Error(
-      "This complaint is already assigned to a technician",
-    );
-  }
+	if (existingAssignment) {
+		throw new AppError(
+			httpStatus.BAD_REQUEST,
+			"This complaint is already assigned to a technician",
+		);
+	}
 
-  // ------------------------------------------
-  // Create assignment + update complaint
-  // Use transaction
-  // ------------------------------------------
+	// ------------------------------------------
+	// Create assignment + update complaint
+	// Use transaction
+	// ------------------------------------------
 
-  const result = await prisma.$transaction(async (tx) => {
-    const assignment =
-      await tx.complaintAssignment.create({
-        data: {
-          complaint: {
-            connect: {
-              id: payload.complaintId,
-            },
-          },
+	const result = await prisma.$transaction(async (tx) => {
+		const assignment = await tx.complaintAssignment.create({
+			data: {
+				complaint: {
+					connect: {
+						id: payload.complaintId,
+					},
+				},
 
-          assignedTo: {
-            connect: {
-              id: payload.assignedToId,
-            },
-          },
+				assignedTo: {
+					connect: {
+						id: payload.assignedToId,
+					},
+				},
 
-          assignedBy: {
-            connect: {
-              id: managerId,
-            },
-          },
+				assignedBy: {
+					connect: {
+						id: managerId,
+					},
+				},
 
-          note: payload.note,
-        },
+				note: payload.note,
+			},
 
-        include: {
-          complaint: {
-            select: {
-              id: true,
-              trackingId: true,
-              title: true,
-              status: true,
-              priority: true,
-              categoryName: true,
-              department: true,
-              location: true,
-            },
-          },
+			include: {
+				complaint: {
+					select: {
+						id: true,
+						trackingId: true,
+						title: true,
+						status: true,
+						priority: true,
+						categoryName: true,
+						department: true,
+						location: true,
+					},
+				},
 
-          assignedTo: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
-              status: true,
-            },
-          },
+				assignedTo: {
+					select: {
+						id: true,
+						name: true,
+						email: true,
+						role: true,
+						status: true,
+					},
+				},
 
-          assignedBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
-            },
-          },
-        },
-      });
+				assignedBy: {
+					select: {
+						id: true,
+						name: true,
+						email: true,
+						role: true,
+					},
+				},
+			},
+		});
 
-    // ------------------------------------------
-    // Update complaint status
-    // ------------------------------------------
+		// ------------------------------------------
+		// Update complaint status
+		// ------------------------------------------
 
-    await tx.complaint.update({
-      where: {
-        id: payload.complaintId,
-      },
+		await tx.complaint.update({
+			where: {
+				id: payload.complaintId,
+			},
 
-      data: {
-        status: ComplaintStatus.ASSIGNED,
-      },
-    });
+			data: {
+				status: ComplaintStatus.ASSIGNED,
+			},
+		});
 
-    return assignment;
-  });
+		return assignment;
+	});
 
-  return result;
+	return result;
 };
 
 // ======================================================
 // GET ALL ASSIGNMENTS FOR A COMPLAINT
-// Manager/Admin/Technician can use according to route
+// Manager/Admin/Technician
 // ======================================================
 
-const getComplaintAssignments = async (
-  complaintId: string,
-) => {
-  // ------------------------------------------
-  // Check complaint
-  // ------------------------------------------
+const getComplaintAssignments = async (complaintId: string) => {
+	// ------------------------------------------
+	// Check complaint
+	// ------------------------------------------
 
-  const complaint = await prisma.complaint.findUnique({
-    where: {
-      id: complaintId,
-    },
-  });
+	const complaint = await prisma.complaint.findUnique({
+		where: {
+			id: complaintId,
+		},
+	});
 
-  if (!complaint) {
-    throw new Error("Complaint not found");
-  }
+	if (!complaint) {
+		throw new AppError(httpStatus.NOT_FOUND, "Complaint not found");
+	}
 
-  // ------------------------------------------
-  // Get assignments
-  // ------------------------------------------
+	// ------------------------------------------
+	// Get assignments
+	// ------------------------------------------
 
-  return prisma.complaintAssignment.findMany({
-    where: {
-      complaintId,
-    },
+	return prisma.complaintAssignment.findMany({
+		where: {
+			complaintId,
+		},
 
-    include: {
-      assignedTo: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          status: true,
-        },
-      },
+		include: {
+			assignedTo: {
+				select: {
+					id: true,
+					name: true,
+					email: true,
+					role: true,
+					status: true,
+				},
+			},
 
-      assignedBy: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-        },
-      },
+			assignedBy: {
+				select: {
+					id: true,
+					name: true,
+					email: true,
+					role: true,
+				},
+			},
 
-      complaint: {
-        select: {
-          id: true,
-          trackingId: true,
-          title: true,
-          status: true,
-          priority: true,
-        },
-      },
-    },
+			complaint: {
+				select: {
+					id: true,
+					trackingId: true,
+					title: true,
+					status: true,
+					priority: true,
+				},
+			},
+		},
 
-    orderBy: {
-      assignedAt: "desc",
-    },
-  });
+		orderBy: {
+			assignedAt: "desc",
+		},
+	});
 };
 
 // ======================================================
@@ -272,198 +271,264 @@ const getComplaintAssignments = async (
 // Technician
 // ======================================================
 
-const getMyAssignments = async (
-  technicianId: string,
-) => {
-  return prisma.complaintAssignment.findMany({
-    where: {
-      assignedToId: technicianId,
+const getMyAssignments = async (technicianId: string) => {
+	return prisma.complaintAssignment.findMany({
+		where: {
+			assignedToId: technicianId,
 
-      // Only active assignments
-      completedAt: null,
+			// Only active assignments
+			completedAt: null,
 
-      complaint: {
-        isDeleted: false,
+			complaint: {
+				status: {
+					in: [ComplaintStatus.ASSIGNED, ComplaintStatus.IN_PROGRESS],
+				},
+			},
+		},
 
-        status: {
-          in: [
-            ComplaintStatus.ASSIGNED,
-            ComplaintStatus.IN_PROGRESS,
-          ],
-        },
-      },
-    },
+		include: {
+			complaint: {
+				select: {
+					id: true,
+					trackingId: true,
+					title: true,
+					description: true,
+					status: true,
+					priority: true,
+					categoryName: true,
+					department: true,
+					location: true,
+					createdAt: true,
+				},
+			},
 
-    include: {
-      complaint: {
-        select: {
-          id: true,
-          trackingId: true,
-          title: true,
-          description: true,
-          status: true,
-          priority: true,
-          categoryName: true,
-          department: true,
-          location: true,
-          createdAt: true,
-        },
-      },
+			assignedBy: {
+				select: {
+					id: true,
+					name: true,
+					role: true,
+				},
+			},
+		},
 
-      assignedBy: {
-        select: {
-          id: true,
-          name: true,
-          role: true,
-        },
-      },
-    },
-
-    orderBy: {
-      assignedAt: "desc",
-    },
-  });
+		orderBy: {
+			assignedAt: "desc",
+		},
+	});
 };
 
 // ======================================================
-// COMPLETE ASSIGNMENT
-// Technician can ONLY RESOLVE
+// COMPLETE / UPDATE ASSIGNMENT
+//
+// Allowed status transitions:
+//
+// ASSIGNED → IN_PROGRESS
+// IN_PROGRESS → RESOLVED
+//
+// ASSIGNED → IN_PROGRESS:
+//   Assignment remains active
+//   completedAt = null
+//
+// IN_PROGRESS → RESOLVED:
+//   Assignment completed
+//   completedAt = current date
+//
+// Technician cannot change to CLOSED or any other status
 // ======================================================
 
 const completeAssignment = async (
-  technicianId: string,
-  assignmentId: string,
-  payload: {
-    status: ComplaintStatus;
-  },
+	technicianId: string,
+	assignmentId: string,
+	payload: {
+		status: ComplaintStatus;
+	},
 ) => {
-  // ------------------------------------------
-  // Find assignment
-  // ------------------------------------------
+	// ------------------------------------------
+	// Find assignment
+	// ------------------------------------------
 
-  const assignment =
-    await prisma.complaintAssignment.findUnique({
-      where: {
-        id: assignmentId,
-      },
-    });
+	const assignment = await prisma.complaintAssignment.findUnique({
+		where: {
+			id: assignmentId,
+		},
+	});
 
-  if (!assignment) {
-    throw new Error("Assignment not found");
-  }
+	if (!assignment) {
+		throw new AppError(httpStatus.NOT_FOUND, "Assignment not found");
+	}
 
-  // ------------------------------------------
-  // Check technician ownership
-  // ------------------------------------------
+	// ------------------------------------------
+	// Check technician ownership
+	// ------------------------------------------
 
-  if (assignment.assignedToId !== technicianId) {
-    throw new Error(
-      "You are not assigned to this complaint",
-    );
-  }
+	if (assignment.assignedToId !== technicianId) {
+		throw new AppError(
+			httpStatus.FORBIDDEN,
+			"You are not assigned to this complaint",
+		);
+	}
 
-  // ------------------------------------------
-  // Already completed?
-  // ------------------------------------------
+	// ------------------------------------------
+	// Already completed?
+	// ------------------------------------------
 
-  if (assignment.completedAt) {
-    throw new Error(
-      "This assignment is already completed",
-    );
-  }
+	if (assignment.completedAt) {
+		throw new AppError(
+			httpStatus.BAD_REQUEST,
+			"This assignment is already completed",
+		);
+	}
 
-  // ------------------------------------------
-  // Technician can ONLY resolve
-  // Technician cannot CLOSE
-  // ------------------------------------------
+	// ------------------------------------------
+	// Transaction
+	// ------------------------------------------
 
-  if (payload.status !== ComplaintStatus.RESOLVED) {
-    throw new Error(
-      "Technician can only resolve the complaint",
-    );
-  }
+	const result = await prisma.$transaction(async (tx) => {
+		// ----------------------------------------
+		// Get latest complaint status
+		// inside transaction
+		// ----------------------------------------
 
-  // ------------------------------------------
-  // Check complaint
-  // ------------------------------------------
+		const complaint = await tx.complaint.findUnique({
+			where: {
+				id: assignment.complaintId,
+			},
 
-  const complaint = await prisma.complaint.findUnique({
-    where: {
-      id: assignment.complaintId,
-    },
-  });
+			select: {
+				id: true,
+				trackingId: true,
+				title: true,
+				status: true,
+				priority: true,
+				categoryName: true,
+				department: true,
+				location: true,
+			},
+		});
 
-  if (!complaint) {
-    throw new Error("Complaint not found");
-  }
+		if (!complaint) {
+			throw new AppError(httpStatus.NOT_FOUND, "Complaint not found");
+		}
 
-  // ------------------------------------------
-  // Complaint must be IN_PROGRESS
-  // before RESOLVED
-  // ------------------------------------------
+		// ==================================================
+		// ASSIGNED → IN_PROGRESS
+		// ==================================================
 
-  if (
-    complaint.status !== ComplaintStatus.IN_PROGRESS &&
-    complaint.status !== ComplaintStatus.ASSIGNED
-  ) {
-    throw new Error(
-      "Only assigned or in-progress complaints can be resolved",
-    );
-  }
+		if (complaint.status === ComplaintStatus.ASSIGNED) {
+			// Technician can only move ASSIGNED
+			// complaint to IN_PROGRESS
 
-  // ------------------------------------------
-  // Transaction
-  // ------------------------------------------
+			if (payload.status !== ComplaintStatus.IN_PROGRESS) {
+				throw new AppError(
+					httpStatus.BAD_REQUEST,
+					"Assigned complaint can only be changed to IN_PROGRESS",
+				);
+			}
 
-  const result = await prisma.$transaction(async (tx) => {
-    // ----------------------------------------
-    // Complete assignment
-    // ----------------------------------------
+			// Update complaint status
+			const updatedComplaint = await tx.complaint.update({
+				where: {
+					id: complaint.id,
+				},
 
-    const updatedAssignment =
-      await tx.complaintAssignment.update({
-        where: {
-          id: assignmentId,
-        },
+				data: {
+					status: ComplaintStatus.IN_PROGRESS,
+				},
 
-        data: {
-          completedAt: new Date(),
-        },
-      });
+				select: {
+					id: true,
+					trackingId: true,
+					title: true,
+					status: true,
+					priority: true,
+					categoryName: true,
+					department: true,
+					location: true,
+				},
+			});
 
-    // ----------------------------------------
-    // Update complaint → RESOLVED
-    // ----------------------------------------
+			// IMPORTANT:
+			// Assignment is NOT completed here.
+			// completedAt remains null.
 
-    const updatedComplaint =
-      await tx.complaint.update({
-        where: {
-          id: assignment.complaintId,
-        },
+			return {
+				assignment,
+				complaint: updatedComplaint,
+			};
+		}
 
-        data: {
-          status: ComplaintStatus.RESOLVED,
-        },
+		// ==================================================
+		// IN_PROGRESS → RESOLVED
+		// ==================================================
 
-        select: {
-          id: true,
-          trackingId: true,
-          title: true,
-          status: true,
-          priority: true,
-          categoryName: true,
-          department: true,
-          location: true,
-        },
-      });
+		if (complaint.status === ComplaintStatus.IN_PROGRESS) {
+			// Technician can only resolve
+			// an IN_PROGRESS complaint
 
-    return {
-      assignment: updatedAssignment,
-      complaint: updatedComplaint,
-    };
-  });
+			if (payload.status !== ComplaintStatus.RESOLVED) {
+				throw new AppError(
+					httpStatus.BAD_REQUEST,
+					"IN_PROGRESS complaint can only be changed to RESOLVED",
+				);
+			}
 
-  return result;
+			// ----------------------------------------
+			// Complete assignment
+			// ----------------------------------------
+
+			const updatedAssignment = await tx.complaintAssignment.update({
+				where: {
+					id: assignmentId,
+				},
+
+				data: {
+					completedAt: new Date(),
+				},
+			});
+
+			// ----------------------------------------
+			// Update complaint
+			// IN_PROGRESS → RESOLVED
+			// ----------------------------------------
+
+			const updatedComplaint = await tx.complaint.update({
+				where: {
+					id: complaint.id,
+				},
+
+				data: {
+					status: ComplaintStatus.RESOLVED,
+				},
+
+				select: {
+					id: true,
+					trackingId: true,
+					title: true,
+					status: true,
+					priority: true,
+					categoryName: true,
+					department: true,
+					location: true,
+				},
+			});
+
+			return {
+				assignment: updatedAssignment,
+				complaint: updatedComplaint,
+			};
+		}
+
+		// ==================================================
+		// ALL OTHER STATUS TRANSITIONS ARE BLOCKED
+		// ==================================================
+
+		throw new AppError(
+			httpStatus.BAD_REQUEST,
+			"Only ASSIGNED → IN_PROGRESS → RESOLVED status transition is allowed",
+		);
+	});
+
+	return result;
 };
 
 // ======================================================
@@ -471,60 +536,58 @@ const completeAssignment = async (
 // ONLY MANAGER / ADMIN
 // ======================================================
 
-const closeComplaint = async (
-  complaintId: string,
-) => {
-  // ------------------------------------------
-  // Find complaint
-  // ------------------------------------------
+const closeComplaint = async (complaintId: string) => {
+	// ------------------------------------------
+	// Find complaint
+	// ------------------------------------------
 
-  const complaint = await prisma.complaint.findUnique({
-    where: {
-      id: complaintId,
-    },
-  });
+	const complaint = await prisma.complaint.findUnique({
+		where: {
+			id: complaintId,
+		},
+	});
 
-  if (!complaint) {
-    throw new Error("Complaint not found");
-  }
+	if (!complaint) {
+		throw new AppError(httpStatus.NOT_FOUND, "Complaint not found");
+	}
 
-  // ------------------------------------------
-  // Only RESOLVED complaint can be CLOSED
-  // ------------------------------------------
+	// ------------------------------------------
+	// Only RESOLVED complaint can be CLOSED
+	// ------------------------------------------
 
-  if (complaint.status !== ComplaintStatus.RESOLVED) {
-    throw new Error(
-      "Only resolved complaints can be closed",
-    );
-  }
+	if (complaint.status !== ComplaintStatus.RESOLVED) {
+		throw new AppError(
+			httpStatus.BAD_REQUEST,
+			"Only resolved complaints can be closed",
+		);
+	}
 
-  // ------------------------------------------
-  // Close complaint
-  // ------------------------------------------
+	// ------------------------------------------
+	// Close complaint
+	// ------------------------------------------
 
-  const updatedComplaint =
-    await prisma.complaint.update({
-      where: {
-        id: complaintId,
-      },
+	const updatedComplaint = await prisma.complaint.update({
+		where: {
+			id: complaintId,
+		},
 
-      data: {
-        status: ComplaintStatus.CLOSED,
-      },
+		data: {
+			status: ComplaintStatus.CLOSED,
+		},
 
-      select: {
-        id: true,
-        trackingId: true,
-        title: true,
-        status: true,
-        priority: true,
-        categoryName: true,
-        department: true,
-        location: true,
-      },
-    });
+		select: {
+			id: true,
+			trackingId: true,
+			title: true,
+			status: true,
+			priority: true,
+			categoryName: true,
+			department: true,
+			location: true,
+		},
+	});
 
-  return updatedComplaint;
+	return updatedComplaint;
 };
 
 // ======================================================
@@ -532,9 +595,9 @@ const closeComplaint = async (
 // ======================================================
 
 export const ComplaintAssignmentService = {
-  createAssignment,
-  getComplaintAssignments,
-  getMyAssignments,
-  completeAssignment,
-  closeComplaint,
+	createAssignment,
+	getComplaintAssignments,
+	getMyAssignments,
+	completeAssignment,
+	closeComplaint,
 };

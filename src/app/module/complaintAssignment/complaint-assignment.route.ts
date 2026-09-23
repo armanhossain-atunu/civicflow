@@ -9,43 +9,39 @@ const router = Router();
 
 // Manager/Admin assigns complaint
 router.post(
-  "/",
-  auth(Role.MANAGER, Role.ADMIN),
-  validateRequest(
-    ComplaintAssignmentValidation.createComplaintAssignmentSchema,
-  ),
-  ComplaintAssignmentController.createAssignment,
+	"/",
+	auth(Role.MANAGER, Role.ADMIN),
+	validateRequest(
+		ComplaintAssignmentValidation.createComplaintAssignmentSchema,
+	),
+	ComplaintAssignmentController.createAssignment,
 );
 
 // Manager/Admin/Technician can see complaint assignments
 router.get(
-  "/complaint/:complaintId",
-  auth(
-    Role.MANAGER,
-    Role.ADMIN,
-    Role.TECHNICIAN,
-  ),
-  ComplaintAssignmentController.getComplaintAssignments,
+	"/complaint/:complaintId",
+	auth(Role.MANAGER, Role.ADMIN, Role.TECHNICIAN),
+	ComplaintAssignmentController.getComplaintAssignments,
 );
 
 // Technician sees own assignments
 router.get(
-  "/my-assignments",
-  auth(Role.TECHNICIAN),
-  ComplaintAssignmentController.getMyAssignments,
+	"/my-assignments",
+	auth(Role.TECHNICIAN),
+	ComplaintAssignmentController.getMyAssignments,
 );
 
 // Technician completes assignment
 router.patch(
-  "/:assignmentId/complete",
-  auth(Role.TECHNICIAN),
-  ComplaintAssignmentController.completeAssignment,
+	"/:assignmentId/complete",
+	auth(Role.TECHNICIAN),
+	ComplaintAssignmentController.completeAssignment,
 );
 
 router.patch(
-  "/:complaintId/close",
-  auth(Role.MANAGER, Role.ADMIN),
-  ComplaintAssignmentController.closeComplaint,
+	"/:complaintId/close",
+	auth(Role.MANAGER, Role.ADMIN),
+	ComplaintAssignmentController.closeComplaint,
 );
 
 export const ComplaintAssignmentRoutes = router;

@@ -8,26 +8,26 @@ import { createComplaintSchema } from "./complaint.validation";
 const router = Router();
 
 router.post(
-  "/",
-  auth(Role.CITIZEN),
-  validateRequest(createComplaintSchema),
-  complaintController.createComplaint,
+	"/",
+	auth(Role.CITIZEN),
+	validateRequest(createComplaintSchema),
+	complaintController.createComplaint,
 );
 router.get(
-  "/",
-  auth(Role.ADMIN, Role.MANAGER, Role.TECHNICIAN, Role.CITIZEN),
-  complaintController.getAllComplaints,
+	"/",
+	auth(Role.ADMIN, Role.MANAGER, Role.TECHNICIAN, Role.CITIZEN),
+	complaintController.getAllComplaints,
 );
 router.get("/my", auth(Role.CITIZEN), complaintController.getOwnComplaints);
 router.delete(
-  "/:id",
-  auth(Role.CITIZEN),
-  complaintController.deleteOwnComplaint,
+	"/:id",
+	auth(Role.CITIZEN),
+	complaintController.deleteOwnComplaint,
 );
 router.get(
-  "/:complaintId",
-  auth(Role.CITIZEN),
-complaintController.getOwnComplaint
+	"/:complaintId",
+	auth(Role.CITIZEN),
+	complaintController.getOwnComplaint,
 );
 
 export const complaintRouter = router;
