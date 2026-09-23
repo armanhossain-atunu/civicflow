@@ -32,13 +32,15 @@ const getOwnComplaints = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getOwnComplaint = catchAsync(async (req: Request, res: Response) => {
-	const userId = req.user!.userId;
 	const { complaintId } = req.params;
 
-	const result = await complaintService.getOwnComplaint(
-		complaintId as string,
-		userId,
-	);
+	const result =
+		req.user!.role === "ADMIN"
+			? await complaintService.getComplaintByAdmin(complaintId as string)
+			: await complaintService.getOwnComplaint(
+					complaintId as string,
+					req.user!.userId,
+				);
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
@@ -50,10 +52,13 @@ const getOwnComplaint = catchAsync(async (req: Request, res: Response) => {
 
 // delete Own Complaint
 const deleteOwnComplaint = catchAsync(async (req: Request, res: Response) => {
-	await complaintService.deleteOwnComplaint(
-		req.user!.userId,
-		req.params.id as string,
-	);
+	const complaintId = req.params.id as string;
+
+	if (req.user!.role === "ADMIN") {
+		await complaintService.deleteComplaintByAdmin(complaintId);
+	} else {
+		await complaintService.deleteOwnComplaint(req.user!.userId, complaintId);
+	}
 
 	sendResponse(res, {
 		statusCode: 200,

@@ -131,12 +131,12 @@ const deleteCategory = async (id: string) => {
 		throw new Error("Category not found");
 	}
 
-	const category = await prisma.category.update({
+	const category = await prisma.category.delete({
 		where: {
 			id,
 		},
-		data: {
-			isActive: false,
+		include: {
+			complaints: true,
 		},
 	});
 

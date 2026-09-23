@@ -21,12 +21,12 @@ router.get(
 router.get("/my", auth(Role.CITIZEN), complaintController.getOwnComplaints);
 router.delete(
 	"/:id",
-	auth(Role.CITIZEN),
+	auth(Role.ADMIN, Role.CITIZEN),
 	complaintController.deleteOwnComplaint,
 );
 router.get(
 	"/:complaintId",
-	auth(Role.CITIZEN),
+	auth(Role.ADMIN, Role.CITIZEN),
 	complaintController.getOwnComplaint,
 );
 

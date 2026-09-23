@@ -15,6 +15,22 @@
       "value": ""
     },
     {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "managerToken",
+      "value": ""
+    },
+    {
+      "key": "technicianToken",
+      "value": ""
+    },
+    {
+      "key": "citizenToken",
+      "value": ""
+    },
+    {
       "key": "categoryId",
       "value": "00000000-0000-0000-0000-000000000000"
     },
@@ -325,7 +341,7 @@
           }
         },
         {
-          "name": "Get complaint by ID",
+          "name": "Get complaint by ID (citizen owner or admin)",
           "request": {
             "method": "GET",
             "header": [],
@@ -333,7 +349,7 @@
           }
         },
         {
-          "name": "Delete my complaint",
+          "name": "Delete complaint (citizen owner or admin)",
           "request": {
             "method": "DELETE",
             "header": [],
@@ -511,6 +527,319 @@
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/api/v1/payments/bkash/callback?paymentID={{paymentId}}&status=success"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ADMIN APIs",
+      "description": "Use adminToken after logging in with the configured admin account.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{adminToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get all users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/user"
+          }
+        },
+        {
+          "name": "Get all complaints",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint"
+          }
+        },
+        {
+          "name": "Get complaint by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint/{{complaintId}}"
+          }
+        },
+        {
+          "name": "Delete complaint",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint/{{complaintId}}"
+          }
+        },
+        {
+          "name": "Create complaint assignment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"complaintId\": \"{{complaintId}}\",\n  \"assignedToId\": \"{{userId}}\",\n  \"note\": \"Please inspect this complaint.\"}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/v1/complaint-assignments"
+          }
+        },
+        {
+          "name": "Close complaint",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint-assignments/{{complaintId}}/close"
+          }
+        },
+        {
+          "name": "Get all payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/payments"
+          }
+        },
+        {
+          "name": "Get all feedbacks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/feedbacks"
+          }
+        }
+      ]
+    },
+    {
+      "name": "MANAGER APIs",
+      "description": "Use managerToken after logging in with the configured manager account.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{managerToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get all complaints",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint"
+          }
+        },
+        {
+          "name": "Get complaint by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint/{{complaintId}}"
+          }
+        },
+        {
+          "name": "Create complaint assignment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"complaintId\": \"{{complaintId}}\",\n  \"assignedToId\": \"{{userId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/v1/complaint-assignments"
+          }
+        },
+        {
+          "name": "Get complaint assignments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint-assignments/complaint/{{complaintId}}"
+          }
+        },
+        {
+          "name": "Close complaint",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint-assignments/{{complaintId}}/close"
+          }
+        },
+        {
+          "name": "Get all payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/payments"
+          }
+        },
+        {
+          "name": "Get all feedbacks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/feedbacks"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TECHNICIAN APIs",
+      "description": "Use technicianToken after logging in with the configured technician account.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{technicianToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get all complaints",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint"
+          }
+        },
+        {
+          "name": "Get complaint by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint/{{complaintId}}"
+          }
+        },
+        {
+          "name": "Get complaint assignments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint-assignments/complaint/{{complaintId}}"
+          }
+        },
+        {
+          "name": "Get my assignments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint-assignments/my-assignments"
+          }
+        },
+        {
+          "name": "Complete assignment",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint-assignments/{{assignmentId}}/complete"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CITIZEN APIs",
+      "description": "Use citizenToken after email verification or login with a citizen account.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{citizenToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Create complaint",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Large pothole near school\",\n  \"description\": \"There is a dangerous pothole near the main school entrance.\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"department\": \"Public Works\",\n  \"location\": \"12 Main Street\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/v1/complaint"
+          }
+        },
+        {
+          "name": "Get my complaints",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint/my"
+          }
+        },
+        {
+          "name": "Get my complaint by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint/{{complaintId}}"
+          }
+        },
+        {
+          "name": "Delete my complaint",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/complaint/{{complaintId}}"
+          }
+        },
+        {
+          "name": "Get active categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/categories/active"
+          }
+        },
+        {
+          "name": "Create bKash payment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/payments/complaint/{{complaintId}}/bkash/create"
+          }
+        },
+        {
+          "name": "Execute bKash payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": \"{{paymentId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/v1/payments/bkash/execute"
+          }
+        },
+        {
+          "name": "Get my payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/payments/my-payments"
+          }
+        },
+        {
+          "name": "Create feedback",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"comment\": \"The issue was resolved quickly.\",\n  \"complaintId\": \"{{complaintId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/v1/feedbacks"
+          }
+        },
+        {
+          "name": "Get my feedbacks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/feedbacks/my-feedbacks?page=1&limit=10"
           }
         }
       ]

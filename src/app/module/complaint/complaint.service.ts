@@ -262,6 +262,24 @@ const getOwnComplaint = async (complaintId: string, userId: string) => {
 	return complaint;
 };
 
+const getComplaintByAdmin = async (complaintId: string) => {
+	const complaint = await prisma.complaint.findUnique({
+		where: {
+			id: complaintId,
+		},
+		include: {
+			category: true,
+			payment: true,
+		},
+	});
+
+	if (!complaint) {
+		throw new AppError(httpStatus.NOT_FOUND, "Complaint not found");
+	}
+
+	return complaint;
+};
+
 // ==================================================
 // Get All Complaints
 // ==================================================
@@ -378,18 +396,10 @@ const getAllComplaints = async (query: {
 // ==================================================
 
 const deleteOwnComplaint = async (userId: string, complaintId: string) => {
-	// ------------------------------------------
-	// Find complaint
-	// ------------------------------------------
-
 	const complaint = await prisma.complaint.findFirst({
 		where: {
 			id: complaintId,
 			citizenId: userId,
-		},
-
-		include: {
-			payment: true,
 		},
 	});
 
@@ -397,21 +407,27 @@ const deleteOwnComplaint = async (userId: string, complaintId: string) => {
 		throw new Error("Complaint not found");
 	}
 
-	// ------------------------------------------
-	// Only allow deletion before processing
-	// ------------------------------------------
+	return deleteComplaintPermanently(complaintId, complaint);
+};
 
-	if (
-		complaint.status !== "SUBMITTED" &&
-		complaint.status !== "PAYMENT_PENDING"
-	) {
-		throw new Error("Complaint cannot be deleted after processing has started");
+const deleteComplaintByAdmin = async (complaintId: string) => {
+	const complaint = await prisma.complaint.findUnique({
+		where: {
+			id: complaintId,
+		},
+	});
+
+	if (!complaint) {
+		throw new Error("Complaint not found");
 	}
 
-	// ------------------------------------------
-	// Soft delete complaint
-	// ------------------------------------------
+	return deleteComplaintPermanently(complaintId, complaint);
+};
 
+const deleteComplaintPermanently = async (
+	complaintId: string,
+	complaint: { id: string; trackingId: string },
+) => {
 	await prisma.$transaction(async (tx) => {
 		await tx.payment.deleteMany({
 			where: {
@@ -426,7 +442,11 @@ const deleteOwnComplaint = async (userId: string, complaintId: string) => {
 		});
 	});
 
-	return complaint;
+	return {
+		id: complaint.id,
+		trackingId: complaint.trackingId,
+		message: "Complaint permanently deleted",
+	};
 };
 // ==================================================
 // Export
@@ -436,6 +456,8 @@ export const complaintService = {
 	createComplaint,
 	getOwnComplaints,
 	getOwnComplaint,
+	getComplaintByAdmin,
 	getAllComplaints,
 	deleteOwnComplaint,
+	deleteComplaintByAdmin,
 };

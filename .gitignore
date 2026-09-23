@@ -7,3 +7,4 @@ generated
 .claude
 .agents
 .vercel
+.env*

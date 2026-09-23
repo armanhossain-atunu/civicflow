@@ -40,20 +40,20 @@ app.use("/api/v1/complaint-assignments", ComplaintAssignmentRoutes);
 app.use("/api/v1/payments", paymentRouter);
 app.use("/api/v1/feedbacks", feedbackRoutes);
 
-app.get("/test", async (req: Request, res: Response, next: NextFunction) => {
-	try {
-		const grantIdTokenResult = await getBkashIdToken();
-		console.log(grantIdTokenResult);
-		res.status(httpStatus.OK).json({
-			success: true,
-			message: "Test route is working fine",
-			date: null,
-		});
-	} catch (error) {
-		console.log(error);
-		next(error);
-	}
-});
+// app.get("/test", async (req: Request, res: Response, next: NextFunction) => {
+// 	try {
+// 		const grantIdTokenResult = await getBkashIdToken();
+// 		console.log(grantIdTokenResult);
+// 		res.status(httpStatus.OK).json({
+// 			success: true,
+// 			message: "Test route is working fine",
+// 			date: null,
+// 		});
+// 	} catch (error) {
+// 		console.log(error);
+// 		next(error);
+// 	}
+// });
 // basic route
 app.get("/", (req: Request, res: Response) => {
 	res.status(httpStatus.OK).json({

@@ -155,8 +155,8 @@ All versioned routes use the `/api/v1` prefix.
 | `POST`   | `/`             | Citizen                             |
 | `GET`    | `/`             | Admin, manager, technician, citizen |
 | `GET`    | `/my`           | Citizen                             |
-| `GET`    | `/:complaintId` | Citizen                             |
-| `DELETE` | `/:id`          | Citizen                             |
+| `GET`    | `/:complaintId` | Citizen owner or admin              |
+| `DELETE` | `/:id`          | Citizen owner or admin              |
 
 A complaint requires `title`, `description`, `categoryId`, `department`, and `location`.
 
