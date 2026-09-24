@@ -1,4 +1,8 @@
-import { ComplaintStatus, Role } from "../../../generated/prisma/enums";
+import {
+	ComplaintStatus,
+	Role,
+	PaymentStatus,
+} from "../../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
 import type { ICreateComplaintAssignment } from "./complaint-assignment.interface";
@@ -23,6 +27,10 @@ const createAssignment = async (
 		where: {
 			id: payload.complaintId,
 		},
+		include: {
+			payment: true,
+			category: true,
+		},
 	});
 
 	if (!complaint) {
@@ -37,6 +45,44 @@ const createAssignment = async (
 		throw new AppError(
 			httpStatus.BAD_REQUEST,
 			"Closed complaint cannot be assigned",
+		);
+	}
+
+	// ------------------------------------------
+	// PAYMENT CHECK
+	// Payment-required complaint must be PAID
+	// before assignment
+	// ------------------------------------------
+
+	if (complaint.category.paymentRequired) {
+		// No payment found
+		if (!complaint.payment) {
+			throw new AppError(
+				httpStatus.BAD_REQUEST,
+				"Payment is required before assigning this complaint",
+			);
+		}
+
+		// Payment is not PAID
+		if (complaint.payment.status !== PaymentStatus.PAID) {
+			throw new AppError(
+				httpStatus.BAD_REQUEST,
+				"Complaint cannot be assigned until payment is completed",
+			);
+		}
+	}
+
+	// ------------------------------------------
+	// Check complaint status
+	// ------------------------------------------
+
+	if (
+		complaint.status !== ComplaintStatus.SUBMITTED &&
+		complaint.status !== ComplaintStatus.PAYMENT_PENDING
+	) {
+		throw new AppError(
+			httpStatus.BAD_REQUEST,
+			"Only submitted complaints can be assigned",
 		);
 	}
 
@@ -70,7 +116,10 @@ const createAssignment = async (
 	// ------------------------------------------
 
 	if (technician.status !== "ACTIVE") {
-		throw new AppError(httpStatus.BAD_REQUEST, "This technician is not active");
+		throw new AppError(
+			httpStatus.BAD_REQUEST,
+			"This technician is not active",
+		);
 	}
 
 	// ------------------------------------------
@@ -78,18 +127,22 @@ const createAssignment = async (
 	// Maximum = 6
 	// ------------------------------------------
 
-	const activeAssignmentCount = await prisma.complaintAssignment.count({
-		where: {
-			assignedToId: payload.assignedToId,
-			completedAt: null,
+	const activeAssignmentCount =
+		await prisma.complaintAssignment.count({
+			where: {
+				assignedToId: payload.assignedToId,
+				completedAt: null,
 
-			complaint: {
-				status: {
-					in: [ComplaintStatus.ASSIGNED, ComplaintStatus.IN_PROGRESS],
+				complaint: {
+					status: {
+						in: [
+							ComplaintStatus.ASSIGNED,
+							ComplaintStatus.IN_PROGRESS,
+						],
+					},
 				},
 			},
-		},
-	});
+		});
 
 	if (activeAssignmentCount >= MAX_ACTIVE_ASSIGNMENTS) {
 		throw new AppError(
@@ -102,12 +155,13 @@ const createAssignment = async (
 	// Check existing active assignment
 	// ------------------------------------------
 
-	const existingAssignment = await prisma.complaintAssignment.findFirst({
-		where: {
-			complaintId: payload.complaintId,
-			completedAt: null,
-		},
-	});
+	const existingAssignment =
+		await prisma.complaintAssignment.findFirst({
+			where: {
+				complaintId: payload.complaintId,
+				completedAt: null,
+			},
+		});
 
 	if (existingAssignment) {
 		throw new AppError(
@@ -122,6 +176,10 @@ const createAssignment = async (
 	// ------------------------------------------
 
 	const result = await prisma.$transaction(async (tx) => {
+		// ----------------------------------------
+		// Create assignment
+		// ----------------------------------------
+
 		const assignment = await tx.complaintAssignment.create({
 			data: {
 				complaint: {
@@ -180,11 +238,11 @@ const createAssignment = async (
 			},
 		});
 
-		// ------------------------------------------
+		// ----------------------------------------
 		// Update complaint status
-		// ------------------------------------------
+		// ----------------------------------------
 
-		await tx.complaint.update({
+		const updatedComplaint = await tx.complaint.update({
 			where: {
 				id: payload.complaintId,
 			},
@@ -192,9 +250,23 @@ const createAssignment = async (
 			data: {
 				status: ComplaintStatus.ASSIGNED,
 			},
+
+			select: {
+				id: true,
+				trackingId: true,
+				title: true,
+				status: true,
+				priority: true,
+				categoryName: true,
+				department: true,
+				location: true,
+			},
 		});
 
-		return assignment;
+		return {
+			assignment,
+			complaint: updatedComplaint,
+		};
 	});
 
 	return result;
@@ -217,7 +289,10 @@ const getComplaintAssignments = async (complaintId: string) => {
 	});
 
 	if (!complaint) {
-		throw new AppError(httpStatus.NOT_FOUND, "Complaint not found");
+		throw new AppError(
+			httpStatus.NOT_FOUND,
+			"Complaint not found",
+		);
 	}
 
 	// ------------------------------------------
@@ -281,7 +356,10 @@ const getMyAssignments = async (technicianId: string) => {
 
 			complaint: {
 				status: {
-					in: [ComplaintStatus.ASSIGNED, ComplaintStatus.IN_PROGRESS],
+					in: [
+						ComplaintStatus.ASSIGNED,
+						ComplaintStatus.IN_PROGRESS,
+					],
 				},
 			},
 		},
@@ -333,7 +411,7 @@ const getMyAssignments = async (technicianId: string) => {
 //   Assignment completed
 //   completedAt = current date
 //
-// Technician cannot change to CLOSED or any other status
+// Technician cannot change to CLOSED
 // ======================================================
 
 const completeAssignment = async (
@@ -354,7 +432,10 @@ const completeAssignment = async (
 	});
 
 	if (!assignment) {
-		throw new AppError(httpStatus.NOT_FOUND, "Assignment not found");
+		throw new AppError(
+			httpStatus.NOT_FOUND,
+			"Assignment not found",
+		);
 	}
 
 	// ------------------------------------------
@@ -407,7 +488,10 @@ const completeAssignment = async (
 		});
 
 		if (!complaint) {
-			throw new AppError(httpStatus.NOT_FOUND, "Complaint not found");
+			throw new AppError(
+				httpStatus.NOT_FOUND,
+				"Complaint not found",
+			);
 		}
 
 		// ==================================================
@@ -426,6 +510,7 @@ const completeAssignment = async (
 			}
 
 			// Update complaint status
+
 			const updatedComplaint = await tx.complaint.update({
 				where: {
 					id: complaint.id,
@@ -447,7 +532,6 @@ const completeAssignment = async (
 				},
 			});
 
-			// IMPORTANT:
 			// Assignment is NOT completed here.
 			// completedAt remains null.
 
@@ -476,15 +560,16 @@ const completeAssignment = async (
 			// Complete assignment
 			// ----------------------------------------
 
-			const updatedAssignment = await tx.complaintAssignment.update({
-				where: {
-					id: assignmentId,
-				},
+			const updatedAssignment =
+				await tx.complaintAssignment.update({
+					where: {
+						id: assignmentId,
+					},
 
-				data: {
-					completedAt: new Date(),
-				},
-			});
+					data: {
+						completedAt: new Date(),
+					},
+				});
 
 			// ----------------------------------------
 			// Update complaint
@@ -548,7 +633,10 @@ const closeComplaint = async (complaintId: string) => {
 	});
 
 	if (!complaint) {
-		throw new AppError(httpStatus.NOT_FOUND, "Complaint not found");
+		throw new AppError(
+			httpStatus.NOT_FOUND,
+			"Complaint not found",
+		);
 	}
 
 	// ------------------------------------------

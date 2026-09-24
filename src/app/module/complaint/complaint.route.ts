@@ -26,7 +26,7 @@ router.delete(
 );
 router.get(
 	"/:complaintId",
-	auth(Role.ADMIN, Role.CITIZEN),
+	auth(Role.ADMIN, Role.CITIZEN, Role.MANAGER, Role.TECHNICIAN),
 	complaintController.getOwnComplaint,
 );
 
