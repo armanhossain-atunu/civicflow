@@ -26,7 +26,8 @@ import { redisClient } from "../../lib/redis";
 import { transporter } from "../../lib/Nodemailer";
 import path from "path";
 import ejs from "ejs";
-import { number } from "zod";
+import { AppError } from "../../utils/AppError";
+import httpStatus from "http-status";
 
 const registerUser = async (payload: IRegisterCitizenPayload) => {
   const { name, password, citizen: citizenData } = payload;
@@ -38,9 +39,8 @@ const registerUser = async (payload: IRegisterCitizenPayload) => {
   });
 
   if (isUserExists) {
-    throw new Error("User with this email already exists");
+    throw new AppError(httpStatus.CONFLICT, "User already exists");
   }
-
   const hashedPassword = await bcrypt.hash(password, 8);
 
   const expirationSeconds = 5 * 60;
@@ -263,27 +263,37 @@ const loginUser = async (payload: ILoginUserPayload) => {
     refreshToken,
   };
 };
-
+// getMe
 const getMe = async (user: IRequestUser) => {
-  const isUserExists = await prisma.user.findUnique({
+  const userData = await prisma.user.findUnique({
     where: {
       id: user.userId,
-    },
-    include: {
-      citizen: true,
     },
     omit: {
       password: true,
     },
   });
 
-  if (!isUserExists) {
-    throw new Error("User not found");
+  if (!userData) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  return isUserExists;
+  if (userData.role !== "CITIZEN") {
+    return userData;
+  }
+
+  const citizen = await prisma.citizen.findUnique({
+    where: {
+      userId: userData.id,
+    },
+  });
+
+  return {
+    ...userData,
+    citizen,
+  };
 };
-//
+// refresh token
 const refreshToken = async (token: string) => {
   const verifiedRefreshToken = jwtUtils.verifyToken(
     token,
