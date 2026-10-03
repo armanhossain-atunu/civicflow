@@ -1,5 +1,6 @@
 import z from "zod";
 
+// registration
 const citizenRegistrationZodSchema = z.object({
 	body: z.object({
 		name: z
@@ -24,6 +25,7 @@ const citizenRegistrationZodSchema = z.object({
 			.optional(),
 	}),
 });
+// email verify
 const citizenEmailVerifyZodSchema = z.object({
 	body: z.object({
 		email: z.email("Not email!!"),
