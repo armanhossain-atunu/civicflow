@@ -8,7 +8,8 @@ import { validateRequest } from "../../middleware/validateRequest";
 import { UserValidation } from "./user.validation";
 
 const router = Router();
-router.get("/", auth(Role.ADMIN), UserController.getAllUsers);
+// get all users
+router.get("/", auth(Role.ADMIN, Role.MANAGER), UserController.getAllUsers);
 router.patch(
 	"/profile-image",
 	auth(Role.MANAGER, Role.ADMIN, Role.TECHNICIAN, Role.STAFF, Role.CITIZEN),
