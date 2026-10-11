@@ -4,9 +4,11 @@ import { auth } from "../../middleware/checkAuth";
 import { Role } from "../../../generated/prisma/enums";
 import { validateRequest } from "../../middleware/validateRequest";
 import { createComplaintSchema } from "./complaint.validation";
+import { catchAsync } from "../../utils/catchAsync";
 
 const router = Router();
 
+router.get("/public-stats", catchAsync(complaintController.getPublicComplaintStatsController));
 router.post(
 	"/",
 	auth(Role.CITIZEN),

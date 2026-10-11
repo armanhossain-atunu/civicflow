@@ -8,3 +8,4 @@ generated
 .agents
 .vercel
 .env*
+.env*.local
