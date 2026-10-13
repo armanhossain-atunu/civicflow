@@ -25,7 +25,7 @@ import { feedbackRoutes } from "./app/module/feedback/feedback.route";
 const app: Application = express();
 app.use(
 	cors({
-		origin: config.frontend_url,
+		origin: config.frontend_url || "https://civic-flow-frontend-cyan.vercel.app",
 		credentials: true,
 	}),
 );
