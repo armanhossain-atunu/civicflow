@@ -17,10 +17,7 @@ const uploadProfileImage = catchAsync(async (req: Request, res: Response) => {
 		throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated.");
 	}
 
-	const result = await UserServices.uploadProfileImage(
-		req.file.buffer,
-		userId,
-	);
+	const result = await UserServices.uploadProfileImage(req.file.buffer, userId);
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,

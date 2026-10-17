@@ -116,10 +116,7 @@ const createAssignment = async (
 	// ------------------------------------------
 
 	if (technician.status !== "ACTIVE") {
-		throw new AppError(
-			httpStatus.BAD_REQUEST,
-			"This technician is not active",
-		);
+		throw new AppError(httpStatus.BAD_REQUEST, "This technician is not active");
 	}
 
 	// ------------------------------------------
@@ -127,22 +124,18 @@ const createAssignment = async (
 	// Maximum = 6
 	// ------------------------------------------
 
-	const activeAssignmentCount =
-		await prisma.complaintAssignment.count({
-			where: {
-				assignedToId: payload.assignedToId,
-				completedAt: null,
+	const activeAssignmentCount = await prisma.complaintAssignment.count({
+		where: {
+			assignedToId: payload.assignedToId,
+			completedAt: null,
 
-				complaint: {
-					status: {
-						in: [
-							ComplaintStatus.ASSIGNED,
-							ComplaintStatus.IN_PROGRESS,
-						],
-					},
+			complaint: {
+				status: {
+					in: [ComplaintStatus.ASSIGNED, ComplaintStatus.IN_PROGRESS],
 				},
 			},
-		});
+		},
+	});
 
 	if (activeAssignmentCount >= MAX_ACTIVE_ASSIGNMENTS) {
 		throw new AppError(
@@ -155,13 +148,12 @@ const createAssignment = async (
 	// Check existing active assignment
 	// ------------------------------------------
 
-	const existingAssignment =
-		await prisma.complaintAssignment.findFirst({
-			where: {
-				complaintId: payload.complaintId,
-				completedAt: null,
-			},
-		});
+	const existingAssignment = await prisma.complaintAssignment.findFirst({
+		where: {
+			complaintId: payload.complaintId,
+			completedAt: null,
+		},
+	});
 
 	if (existingAssignment) {
 		throw new AppError(
@@ -289,10 +281,7 @@ const getComplaintAssignments = async (complaintId: string) => {
 	});
 
 	if (!complaint) {
-		throw new AppError(
-			httpStatus.NOT_FOUND,
-			"Complaint not found",
-		);
+		throw new AppError(httpStatus.NOT_FOUND, "Complaint not found");
 	}
 
 	// ------------------------------------------
@@ -356,10 +345,7 @@ const getMyAssignments = async (technicianId: string) => {
 
 			complaint: {
 				status: {
-					in: [
-						ComplaintStatus.ASSIGNED,
-						ComplaintStatus.IN_PROGRESS,
-					],
+					in: [ComplaintStatus.ASSIGNED, ComplaintStatus.IN_PROGRESS],
 				},
 			},
 		},
@@ -432,10 +418,7 @@ const completeAssignment = async (
 	});
 
 	if (!assignment) {
-		throw new AppError(
-			httpStatus.NOT_FOUND,
-			"Assignment not found",
-		);
+		throw new AppError(httpStatus.NOT_FOUND, "Assignment not found");
 	}
 
 	// ------------------------------------------
@@ -488,10 +471,7 @@ const completeAssignment = async (
 		});
 
 		if (!complaint) {
-			throw new AppError(
-				httpStatus.NOT_FOUND,
-				"Complaint not found",
-			);
+			throw new AppError(httpStatus.NOT_FOUND, "Complaint not found");
 		}
 
 		// ==================================================
@@ -560,16 +540,15 @@ const completeAssignment = async (
 			// Complete assignment
 			// ----------------------------------------
 
-			const updatedAssignment =
-				await tx.complaintAssignment.update({
-					where: {
-						id: assignmentId,
-					},
+			const updatedAssignment = await tx.complaintAssignment.update({
+				where: {
+					id: assignmentId,
+				},
 
-					data: {
-						completedAt: new Date(),
-					},
-				});
+				data: {
+					completedAt: new Date(),
+				},
+			});
 
 			// ----------------------------------------
 			// Update complaint
@@ -633,10 +612,7 @@ const closeComplaint = async (complaintId: string) => {
 	});
 
 	if (!complaint) {
-		throw new AppError(
-			httpStatus.NOT_FOUND,
-			"Complaint not found",
-		);
+		throw new AppError(httpStatus.NOT_FOUND, "Complaint not found");
 	}
 
 	// ------------------------------------------

@@ -8,7 +8,10 @@ import { catchAsync } from "../../utils/catchAsync";
 
 const router = Router();
 
-router.get("/public-stats", catchAsync(complaintController.getPublicComplaintStatsController));
+router.get(
+	"/public-stats",
+	catchAsync(complaintController.getPublicComplaintStatsController),
+);
 router.post(
 	"/",
 	auth(Role.CITIZEN),

@@ -18,3 +18,4 @@ generated/
 
 # Vercel
 .vercel/
+.vercel
