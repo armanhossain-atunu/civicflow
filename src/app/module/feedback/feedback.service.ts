@@ -458,6 +458,7 @@ const getAllFeedbacks = async (query: {
 						id: true,
 						name: true,
 						email: true,
+						imageUrl: true,
 					},
 				},
 			},
