@@ -1,0 +1,7 @@
+model ProblemEmbedding {
+id String @id @default(dbgenerated("gen_random_uuid()"))
+content String?
+matadata Json?
+embedding Unsupported("vector")
+  @@map("problem_embeddings")
+}
