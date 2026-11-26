@@ -49,8 +49,8 @@ export default {
 	bkash_password: process.env.BKASH_PASSWORD!,
 	bkash_callback_url: process.env.BKASH_CALLBACK_URL!,
 	// OpenRouteService
-	open_route_service_api_key: process.env.OPENROUTE_API_KEY!,
-	open_route_service_chat_model: process.env.OPENROUTE_CHAT_MODEL!,
-	open_route_service_fallback_chat_model: process.env.OPENROUTE_FALEBACK_CHAT_MODEL!,
-	open_route_service_embed_model: process.env.OPENROUTE_EMBED_MODEL!,
+	open_route_api_key: process.env.OPENROUTE_API_KEY!,
+	open_route_chat_model: process.env.OPENROUTE_CHAT_MODEL!,
+	open_route_fallback_chat_model: process.env.OPENROUTE_FALEBACK_CHAT_MODEL!,
+	open_route_embed_model: process.env.OPENROUTE_EMBED_MODEL!,
 };

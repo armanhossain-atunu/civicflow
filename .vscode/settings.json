@@ -1,4 +1,5 @@
 {
   "prisma-smart-formatter.typescript.defaultFormatter": "esbenp.prettier-vscode",
-  "prisma-smart-formatter.typescriptreact.defaultFormatter": "rvest.vs-code-prettier-eslint"
+  "prisma-smart-formatter.typescriptreact.defaultFormatter": "rvest.vs-code-prettier-eslint",
+  "prisma-smart-formatter.prisma.defaultFormatter": "Prisma.prisma"
 }
